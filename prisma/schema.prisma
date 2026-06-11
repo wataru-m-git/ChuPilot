@@ -1,0 +1,176 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "darwin-arm64"]
+}
+
+// ── Auth.js v5 が要求するモデル ─────────────────────────────────────────────
+// Credentials + JWT 運用では Session/Account テーブルは使用しないが、
+// PrismaAdapter の型要件を満たすために定義する
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ── アプリケーションモデル ────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  // Auth.js v5 が要求するフィールド
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  // アプリ独自フィールド
+  password      String?   // bcrypt ハッシュ（Credentials 認証用）
+  full_name     String?
+  created_at    DateTime  @default(now())
+
+  accounts        Account[]
+  sessions        Session[]
+  mice_created    Mouse[]    @relation("CreatedBy")
+  mice_updated    Mouse[]    @relation("UpdatedBy")
+  cages_created   Cage[]
+  strains_created Strain[]
+  racks_created   Rack[]
+  audit_logs      AuditLog[]
+}
+
+model Rack {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  slots      Int      @default(6)
+  created_at DateTime @default(now())
+  created_by String?
+
+  creator User?  @relation(fields: [created_by], references: [id])
+  cages   Cage[]
+}
+
+model Mouse {
+  id                     Int       @id @default(autoincrement())
+  name                   String    @unique
+  strain                 String?
+  mother_id              String?
+  father_id              String?
+  birth_day              DateTime?
+  sex                    String?
+  color                  String?
+  marking                String?
+  cage_id                Int?
+  genotype_Ehf_cKO       String?
+  genotype_CMV_Ehf_flox  String?
+  genotype_CMV_Elf3_flox String?
+  genotype_Ascl1CreERT2  String?
+  genotype_Foxn1Cre      String?
+  genotype_Fabp4Cre_RFP  String?
+  genotype_Elf3Flox      String?
+  genotypes              String?   // JSON: {"EhfcKO":"hetero","Foxn1Cre":null}
+  typing_date            DateTime?
+  status                 String    @default("active")
+  notes                  String?
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
+  created_by             String?
+  updated_by             String?
+
+  cage    Cage? @relation(fields: [cage_id], references: [id])
+  creator User? @relation("CreatedBy", fields: [created_by], references: [id])
+  updater User? @relation("UpdatedBy", fields: [updated_by], references: [id])
+}
+
+model Cage {
+  id            Int      @id @default(autoincrement())
+  cage_id       String   @unique
+  strain        String?
+  rack_position String?
+  rack_id       Int?
+  slot          Int?
+  capacity      Int      @default(5)
+  type          String   @default("normal")  // "normal" | "mating"
+  notes         String?
+  created_at    DateTime @default(now())
+  created_by    String?
+
+  mice           Mouse[]
+  creator        User?           @relation(fields: [created_by], references: [id])
+  rack           Rack?           @relation(fields: [rack_id], references: [id])
+  matingRecord   MatingRecord?
+}
+
+model Strain {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  created_at  DateTime @default(now())
+  created_by  String?
+
+  creator           User?         @relation(fields: [created_by], references: [id])
+  matingRecords1    MatingRecord[] @relation("MatingStrain1")
+  matingRecords2    MatingRecord[] @relation("MatingStrain2")
+}
+
+model MatingRecord {
+  id           Int       @id @default(autoincrement())
+  cage_id      Int       @unique
+  strain1_id   Int?
+  strain2_id   Int?
+  mating_date  DateTime?
+  birth_date   DateTime?
+  wean_date    DateTime?
+  notes        String?
+  created_at   DateTime  @default(now())
+
+  cage    Cage    @relation(fields: [cage_id], references: [id], onDelete: Cascade)
+  strain1 Strain? @relation("MatingStrain1", fields: [strain1_id], references: [id])
+  strain2 Strain? @relation("MatingStrain2", fields: [strain2_id], references: [id])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  table_name String
+  record_id  String   // Int ではなく String — 将来の UUID 型モデルにも対応
+  action     String
+  changed_by String?
+  changed_at DateTime @default(now())
+  old_values String?  // JSON 文字列
+  new_values String?  // JSON 文字列
+
+  user User? @relation(fields: [changed_by], references: [id])
+}
