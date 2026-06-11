@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import * as XLSX from 'xlsx'
+import { Workbook } from 'exceljs'
 import { bulkCreateMice } from '@/lib/db'
 
 // ─── Column header → DB field mapping ───────────────────────────────────────
@@ -66,8 +66,11 @@ function formatDate(val: unknown): string | null {
   return null
 }
 
-function parseSheet(ws: XLSX.WorkSheet): { rows: ParsedRow[]; skipped: number } {
-  const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null })
+function parseSheet(worksheet: any): { rows: ParsedRow[]; skipped: number } {
+  const raw: unknown[][] = []
+  worksheet.eachRow((row: any) => {
+    raw.push(row.values.slice(1)) // slice(1) because exceljs uses 1-based indexing
+  })
 
   // Find header row: look for a row that contains 'name' as a cell
   let headerRowIdx = -1
@@ -156,7 +159,7 @@ export default function ImportPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null)
+  const [workbook, setWorkbook] = useState<Workbook | null>(null)
   const [sheetNames, setSheetNames] = useState<string[]>([])
   const [selectedSheet, setSelectedSheet] = useState('')
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([])
@@ -173,27 +176,31 @@ export default function ImportPage() {
     }
     setParseError('')
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
-        const data = new Uint8Array(e.target!.result as ArrayBuffer)
-        const wb = XLSX.read(data, { type: 'array', cellDates: true })
+        const arrayBuffer = e.target!.result as ArrayBuffer
+        const wb = new Workbook()
+        await wb.xlsx.load(arrayBuffer)
         setWorkbook(wb)
-        setSheetNames(wb.SheetNames)
+        setSheetNames(wb.worksheets.map((ws) => ws.name))
 
         // Auto-select sheet that has 'name' column
-        let best = wb.SheetNames[0]
-        outer: for (const sName of wb.SheetNames) {
-          const wsRaw = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sName], { header: 1, defval: null })
-          for (const row of wsRaw.slice(0, 10)) {
+        let best = wb.worksheets[0]?.name || ''
+        outer: for (const ws of wb.worksheets) {
+          const firstRows: unknown[][] = []
+          ws.eachRow((row: any, rowNumber: number) => {
+            if (rowNumber <= 10) firstRows.push(row.values.slice(1))
+          })
+          for (const row of firstRows) {
             if ((row as unknown[]).some((c) => typeof c === 'string' && c.trim() === 'name')) {
-              best = sName
+              best = ws.name
               break outer
             }
           }
         }
         setSelectedSheet(best)
 
-        const { rows, skipped } = parseSheet(wb.Sheets[best])
+        const { rows, skipped } = parseSheet(wb.getWorksheet(best))
         setParsedRows(rows)
         setSkippedCount(skipped)
         setStep('preview')
@@ -219,7 +226,7 @@ export default function ImportPage() {
   const handleSheetChange = (sName: string) => {
     if (!workbook) return
     setSelectedSheet(sName)
-    const { rows, skipped } = parseSheet(workbook.Sheets[sName])
+    const { rows, skipped } = parseSheet(workbook.getWorksheet(sName))
     setParsedRows(rows)
     setSkippedCount(skipped)
   }
