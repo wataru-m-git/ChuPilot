@@ -208,18 +208,6 @@ cp data/mouse_colony.db data/backup_$(date +%Y%m%d).db
 
 ## ライセンス
 
-内部用アプリケーション
-
-## サポート
-
-問題が発生した場合は、ログを確認してください：
-
-```bash
-docker compose logs app
-```
-
-## ライセンス
-
 本ソフトウェアは GNU Affero General Public License v3.0 (AGPL-3.0) の
 もとで公開されています。詳細は LICENSE ファイルをご覧ください。
 
@@ -235,3 +223,11 @@ docker compose logs app
 利用によって生じたいかなる損害（データ損失を含む）についても、
 作者は責任を負いません。重要なデータは必ず定期的にバックアップして
 ください。
+
+## サポート
+
+問題が発生した場合は、ログを確認してください：
+
+```bash
+docker compose logs app
+```
