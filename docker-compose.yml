@@ -6,11 +6,12 @@ services:
     container_name: mouse-colony-app
     ports:
       - "3333:3333"
-    env_file: .env.local
-    environment:
-      - NODE_ENV=production
     volumes:
       - ./data:/app/data
+    env_file: 
+      - .env.local
+    environment:
+      - DATABASE_URL=file:/app/data/mouse_colony.db
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3333"]

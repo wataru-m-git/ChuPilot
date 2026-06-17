@@ -192,8 +192,15 @@ async function getUserId(): Promise<string | undefined> {
 }
 
 async function requireAuth(): Promise<string> {
+  console.log('[requireAuth] Checking auth...')
   const session = await auth()
+  console.log('[requireAuth] Session:', {
+    hasSession: !!session,
+    hasUser: !!session?.user,
+    userId: session?.user?.id
+  })
   if (!session?.user?.id) {
+    console.error('[requireAuth] Auth failed')
     throw new Error('認証が必要です')
   }
   return session.user.id
@@ -226,29 +233,37 @@ export async function getMice(
     sort_desc?: boolean
   } = {},
 ): Promise<Mouse[]> {
-  await requireAuth()
-  const where: Prisma.MouseWhereInput = {}
-  if (filters.sex)     where.sex     = filters.sex
-  if (filters.status)  where.status  = filters.status
-  if (filters.strain)  where.strain  = filters.strain
-  if (filters.cage_id) where.cage_id = Number(filters.cage_id)
-  if (filters.search) {
-    // SQLite の LIKE は ASCII で大文字小文字を区別しない
-    where.OR = [
-      { name:   { contains: filters.search } },
-      { strain: { contains: filters.search } },
-    ]
+  try {
+    const userId = await requireAuth()
+    console.log('[getMice] Auth successful, userId:', userId)
+
+    const where: Prisma.MouseWhereInput = {}
+    if (filters.sex)     where.sex     = filters.sex
+    if (filters.status)  where.status  = filters.status
+    if (filters.strain)  where.strain  = filters.strain
+    if (filters.cage_id) where.cage_id = Number(filters.cage_id)
+    if (filters.search) {
+      // SQLite の LIKE は ASCII で大文字小文字を区別しない
+      where.OR = [
+        { name:   { contains: filters.search } },
+        { strain: { contains: filters.search } },
+      ]
+    }
+
+    const sortField = resolveMouseSort(filters.sort_by)
+    const orderBy = { [sortField]: filters.sort_desc ? 'desc' : 'asc' } as Prisma.MouseOrderByWithRelationInput
+
+    const rows = await prisma.mouse.findMany({
+      where,
+      orderBy,
+      include: { cage: { select: { cage_id: true } } },
+    })
+    console.log('[getMice] Retrieved', rows.length, 'mice')
+    return rows.map(toMouse)
+  } catch (error) {
+    console.error('[getMice] Error:', error instanceof Error ? error.message : String(error))
+    throw error
   }
-
-  const sortField = resolveMouseSort(filters.sort_by)
-  const orderBy = { [sortField]: filters.sort_desc ? 'desc' : 'asc' } as Prisma.MouseOrderByWithRelationInput
-
-  const rows = await prisma.mouse.findMany({
-    where,
-    orderBy,
-    include: { cage: { select: { cage_id: true } } },
-  })
-  return rows.map(toMouse)
 }
 
 export async function getMouse(id: number): Promise<Mouse | null> {
@@ -367,16 +382,22 @@ export async function bulkUpdateMiceMarkings(
 // ─── Cages ───────────────────────────────────────────────────────────────────
 
 export async function getCages(): Promise<(Cage & { mice: Mouse[] })[]> {
-  await requireAuth()
-  const rows = await prisma.cage.findMany({
-    orderBy: { cage_id: 'asc' },
-    include: {
-      mice: { where: { status: 'active' } },
-      rack: true,
-      matingRecord: { include: { strain1: true, strain2: true } }
-    },
-  })
-  return rows.map((c) => toCage(c) as Cage & { mice: Mouse[] })
+  try {
+    await requireAuth()
+    const rows = await prisma.cage.findMany({
+      orderBy: { cage_id: 'asc' },
+      include: {
+        mice: { where: { status: 'active' } },
+        rack: true,
+        matingRecord: { include: { strain1: true, strain2: true } }
+      },
+    })
+    console.log('[getCages] Retrieved', rows.length, 'cages')
+    return rows.map((c) => toCage(c) as Cage & { mice: Mouse[] })
+  } catch (error) {
+    console.error('[getCages] Error:', error instanceof Error ? error.message : String(error))
+    throw error
+  }
 }
 
 export async function getCage(id: number): Promise<(Cage & { mice: Mouse[] }) | null> {
@@ -635,9 +656,15 @@ export async function getMatingRecord(id: number): Promise<MatingRecord | null> 
 // ─── Strains ─────────────────────────────────────────────────────────────────
 
 export async function getStrains(): Promise<Strain[]> {
-  await requireAuth()
-  const rows = await prisma.strain.findMany({ orderBy: { name: 'asc' } })
-  return rows.map(toStrain)
+  try {
+    await requireAuth()
+    const rows = await prisma.strain.findMany({ orderBy: { name: 'asc' } })
+    console.log('[getStrains] Retrieved', rows.length, 'strains')
+    return rows.map(toStrain)
+  } catch (error) {
+    console.error('[getStrains] Error:', error instanceof Error ? error.message : String(error))
+    throw error
+  }
 }
 
 export async function createStrain(data: StrainInput, userId?: string): Promise<Strain> {

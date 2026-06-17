@@ -1,7 +1,10 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-bookworm AS builder
 
 WORKDIR /app
+
+# Ensure OpenSSL 3.0.x is available for Prisma
+RUN apt-get update && apt-get install -y openssl libssl-dev && rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files
 COPY package*.json ./
@@ -10,7 +13,7 @@ COPY prisma ./prisma
 # Install dependencies
 RUN npm ci
 
-# Generate Prisma client
+# Generate Prisma client with openssl-3.0.x binaries
 RUN npx prisma generate
 
 # Copy application code
@@ -20,12 +23,12 @@ COPY . .
 RUN npm run build
 
 # Runtime stage
-FROM node:20-alpine
+FROM node:20-bookworm
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Ensure OpenSSL 3.0.x is available for Prisma query engine
+RUN apt-get update && apt-get install -y openssl libssl-dev && rm -rf /var/lib/apt/lists/*
 
 # Copy from builder
 COPY --from=builder /app/package*.json ./
@@ -36,11 +39,11 @@ COPY --from=builder /app/prisma ./prisma
 # Create data directory
 RUN mkdir -p /app/data
 
+# Run Prisma migrations to ensure schema is in sync
+RUN npx prisma migrate deploy --skip-generate || true
+
 # Expose port
 EXPOSE 3333
-
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
 CMD ["npm", "start"]
