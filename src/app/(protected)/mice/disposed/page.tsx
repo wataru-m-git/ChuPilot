@@ -4,8 +4,10 @@ import { useRouter } from 'next/navigation'
 import { getMice } from '@/lib/db'
 import type { Mouse } from '@/types'
 import { GenotypeBadgeList } from '@/components/GenotypeBadge'
+import { useI18n } from '@/i18n/I18nProvider'
 
 export default function DisposedMicePage() {
+  const { t } = useI18n()
   const router = useRouter()
   const [mice, setMice] = useState<Mouse[]>([])
   const [loading, setLoading] = useState(false)
@@ -35,12 +37,12 @@ export default function DisposedMicePage() {
   }
 
   const parseDisposeNote = (notes: string | null): { date: string; reason: string } => {
-    if (!notes) return { date: '不明', reason: '' }
+    if (!notes) return { date: t('miceDisposed.unknown'), reason: '' }
     const match = notes.match(/^(\d{4}-\d{2}-\d{2})処分\s*(.*)$/)
     if (match) {
       return { date: match[1], reason: match[2] || '-' }
     }
-    return { date: '不明', reason: notes }
+    return { date: t('miceDisposed.unknown'), reason: notes }
   }
 
   const SortIcon = ({ col }: { col: string }) =>
@@ -49,26 +51,26 @@ export default function DisposedMicePage() {
   return (
     <div style={{ padding: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1.4rem', color: '#2d3748', margin: 0 }}>処分済み個体</h2>
+        <h2 style={{ fontSize: '1.4rem', color: '#2d3748', margin: 0 }}>{t('miceDisposed.title')}</h2>
       </div>
 
       <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'auto' }}>
         {loading ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#718096' }}>読み込み中...</div>
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#718096' }}>{t('common.loading')}</div>
         ) : mice.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#718096' }}>処分済み個体はありません</div>
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#718096' }}>{t('miceDisposed.empty')}</div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 {[
-                  { key: 'name', label: '個体ID' },
-                  { key: 'strain', label: '系統名' },
-                  { key: 'sex', label: '性別' },
-                  { key: 'birth_day', label: '生年月日' },
-                  { key: null, label: '遺伝子型' },
-                  { key: null, label: '処分日' },
-                  { key: null, label: '処分理由' },
+                  { key: 'name', label: t('miceDisposed.colId') },
+                  { key: 'strain', label: t('miceDisposed.colStrain') },
+                  { key: 'sex', label: t('miceDisposed.colSex') },
+                  { key: 'birth_day', label: t('miceDisposed.colBirthDate') },
+                  { key: null, label: t('miceDisposed.colGenotype') },
+                  { key: null, label: t('miceDisposed.colDisposalDate') },
+                  { key: null, label: t('miceDisposed.colDisposalReason') },
                 ].map(({ key, label }) => (
                   <th key={label} style={{ ...thStyle, cursor: key ? 'pointer' : 'default' }} onClick={() => key && handleSort(key)}>
                     {label}{key && <SortIcon col={key} />}
@@ -98,7 +100,7 @@ export default function DisposedMicePage() {
           </table>
         )}
       </div>
-      <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#718096' }}>{mice.length} 件</div>
+      <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#718096' }}>{t('miceDisposed.count', { n: mice.length })}</div>
     </div>
   )
 }

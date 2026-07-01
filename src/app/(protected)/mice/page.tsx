@@ -4,12 +4,14 @@ import { useRouter } from 'next/navigation'
 import { getMice, getCages, getStrains, bulkUpdateMice, bulkUpdateMiceMarkings } from '@/lib/db'
 import type { Mouse, Cage, Strain } from '@/types'
 import { GenotypeBadgeList } from '@/components/GenotypeBadge'
+import { useI18n } from '@/i18n/I18nProvider'
 
 const DEFAULT_EAR_PUNCH_SEQUENCE = [
   '(0,0)', '(0,1)', '(1,0)', '(1,1)', '(0,2)', '(2,0)', '(1,2)', '(2,1)', '(2,2)',
 ]
 
 export default function MicePage() {
+  const { t } = useI18n()
   const router = useRouter()
   const [mice, setMice] = useState<Mouse[]>([])
   const [cages, setCages] = useState<Cage[]>([])
@@ -84,12 +86,12 @@ export default function MicePage() {
       for (let i = 0; i < bulkForm.genotypeEdits.length; i++) {
         const edit = bulkForm.genotypeEdits[i]
         if (edit.key && !edit.value) {
-          setBulkError(`遺伝型 ${i + 1} 行目：遺伝型名「${edit.key}」の値を選択してください`)
+          setBulkError(t('mice.genotypeRowValueRequired', { n: i + 1, key: edit.key }))
           setBulkSaving(false)
           return
         }
         if (!edit.key && edit.value) {
-          setBulkError(`遺伝型 ${i + 1} 行目：値が選択されていますが、遺伝型名がありません`)
+          setBulkError(t('mice.genotypeRowNameMissing', { n: i + 1 }))
           setBulkSaving(false)
           return
         }
@@ -121,7 +123,7 @@ export default function MicePage() {
       // Check for changes
       const hasSequentialMarking = bulkMarkingMode === 'sequential'
       if (Object.keys(data).length === 0 && !hasSequentialMarking) {
-        setBulkError('変更する項目を1つ以上選択してください')
+        setBulkError(t('mice.selectAtLeastOne'))
         setBulkSaving(false)
         return
       }
@@ -159,7 +161,7 @@ export default function MicePage() {
       setSelectedIds(new Set())
       fetchMice()
     } catch (e: unknown) {
-      setBulkError((e as Error).message || '一括編集に失敗しました')
+      setBulkError((e as Error).message || t('mice.bulkEditFailed'))
     } finally { setBulkSaving(false) }
   }
 
@@ -172,42 +174,42 @@ export default function MicePage() {
   return (
     <div style={{ padding: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1.4rem', color: '#2d3748', margin: 0 }}>個体一覧</h2>
+        <h2 style={{ fontSize: '1.4rem', color: '#2d3748', margin: 0 }}>{t('mice.title')}</h2>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {selectedIds.size > 0 && (
             <button style={bulkEditBtnStyle} onClick={() => { setShowBulkEdit(true); setBulkError(''); setBulkForm({ strain: '', sex: '', cage_id: '', status: '', birth_day: '', mother_id: '', father_id: '', genotypeEdits: [] }); setBulkMarkingMode('none'); setBulkMarkingFixed(''); setBulkMarkingSeq([...DEFAULT_EAR_PUNCH_SEQUENCE]); setBulkMarkingSeqStart(0) }}>
-              一括編集 ({selectedIds.size}件)
+              {t('mice.bulkEditCount', { n: selectedIds.size })}
             </button>
           )}
-          <button style={addBtnStyle} onClick={() => router.push('/mice/new')}>+ 新規登録</button>
+          <button style={addBtnStyle} onClick={() => router.push('/mice/new')}>{t('mice.addNew')}</button>
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-        <input style={searchStyle} placeholder="個体ID・系統名で検索..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input style={searchStyle} placeholder={t('mice.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} />
         <select style={selectStyle} value={filterSex} onChange={(e) => setFilterSex(e.target.value)}>
-          <option value="">性別: すべて</option>
-          <option value="♂">♂ オス</option>
-          <option value="♀">♀ メス</option>
+          <option value="">{t('mice.filterSexAll')}</option>
+          <option value="♂">{t('mice.male')}</option>
+          <option value="♀">{t('mice.female')}</option>
         </select>
         <select style={selectStyle} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="">状態: すべて</option>
-          <option value="active">Active</option>
-          <option value="disposed">処分済み</option>
+          <option value="">{t('mice.filterStatusAll')}</option>
+          <option value="active">{t('mice.statusActive')}</option>
+          <option value="disposed">{t('mice.statusDisposed')}</option>
         </select>
         <select style={selectStyle} value={filterStrain} onChange={(e) => setFilterStrain(e.target.value)}>
-          <option value="">系統: すべて</option>
+          <option value="">{t('mice.filterStrainAll')}</option>
           {strains.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
         </select>
         <select style={selectStyle} value={filterCage} onChange={(e) => setFilterCage(e.target.value)}>
-          <option value="">ケージ: すべて</option>
+          <option value="">{t('mice.filterCageAll')}</option>
           {cages.map((c) => <option key={c.id} value={c.id}>{c.cage_id}</option>)}
         </select>
       </div>
 
       <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'auto' }}>
         {loading ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#718096' }}>読み込み中...</div>
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#718096' }}>{t('common.loading')}</div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -216,9 +218,9 @@ export default function MicePage() {
                   <input type="checkbox" checked={allSelected} ref={(el) => { if (el) el.indeterminate = someSelected }} onChange={toggleSelectAll} onClick={(e) => e.stopPropagation()} />
                 </th>
                 {[
-                  { key: 'name', label: '個体ID' }, { key: 'strain', label: '系統名' }, { key: 'sex', label: '性別' },
-                  { key: 'birth_day', label: '生年月日' }, { key: 'weeks', label: '週齢' },
-                  { key: null, label: '主要遺伝子型' }, { key: null, label: 'ケージ' }, { key: 'status', label: '状態' },
+                  { key: 'name', label: t('mice.colId') }, { key: 'strain', label: t('mice.colStrain') }, { key: 'sex', label: t('mice.colSex') },
+                  { key: 'birth_day', label: t('mice.colBirthDay') }, { key: 'weeks', label: t('mice.colWeeks') },
+                  { key: null, label: t('mice.colMainGenotype') }, { key: null, label: t('mice.colCage') }, { key: 'status', label: t('mice.colStatus') },
                 ].map(({ key, label }) => (
                   <th key={label} style={{ ...thStyle, cursor: key ? 'pointer' : 'default' }} onClick={() => key && handleSort(key)}>
                     {label}{key && <SortIcon col={key} />}
@@ -254,7 +256,7 @@ export default function MicePage() {
                     <td style={tdStyle}>{m.cage_label || '-'}</td>
                     <td style={tdStyle}>
                       <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', background: m.status === 'active' ? '#c6f6d5' : '#fed7d7', color: m.status === 'active' ? '#276749' : '#9b2c2c' }}>
-                        {m.status === 'active' ? 'Active' : '処分済み'}
+                        {m.status === 'active' ? t('mice.statusActive') : t('mice.statusDisposed')}
                       </span>
                     </td>
                   </tr>
@@ -264,86 +266,86 @@ export default function MicePage() {
           </table>
         )}
       </div>
-      <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#718096' }}>{mice.length} 件{selectedIds.size > 0 && ` / ${selectedIds.size} 件選択中`}</div>
+      <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#718096' }}>{t('mice.count', { n: mice.length })}{selectedIds.size > 0 && ` / ${t('mice.selectedCount', { n: selectedIds.size })}`}</div>
 
       {showBulkEdit && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', borderRadius: '10px', padding: '1.5rem', maxWidth: '800px', width: '95%', boxShadow: '0 8px 30px rgba(0,0,0,0.2)', maxHeight: '85vh', overflowY: 'auto' }}>
-            <h3 style={{ marginBottom: '0.5rem' }}>一括編集</h3>
-            <p style={{ fontSize: '0.85rem', color: '#718096', marginBottom: '1rem' }}>{selectedIds.size}件の個体を一括編集します。変更する項目のみ入力してください。</p>
+            <h3 style={{ marginBottom: '0.5rem' }}>{t('mice.bulkEdit')}</h3>
+            <p style={{ fontSize: '0.85rem', color: '#718096', marginBottom: '1rem' }}>{t('mice.bulkEditDescription', { n: selectedIds.size })}</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>系統名</label>
+              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>{t('mice.colStrain')}</label>
                 <select style={bulkInputStyle} value={bulkForm.strain} onChange={(e) => setBulkForm({ ...bulkForm, strain: e.target.value })}>
-                  <option value="">（変更しない）</option>
+                  <option value="">{t('mice.keepUnchanged')}</option>
                   {strains.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
               </div>
-              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>性別</label>
+              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>{t('mice.colSex')}</label>
                 <select style={bulkInputStyle} value={bulkForm.sex} onChange={(e) => setBulkForm({ ...bulkForm, sex: e.target.value })}>
-                  <option value="">（変更しない）</option>
-                  <option value="♂">♂ オス</option>
-                  <option value="♀">♀ メス</option>
+                  <option value="">{t('mice.keepUnchanged')}</option>
+                  <option value="♂">{t('mice.male')}</option>
+                  <option value="♀">{t('mice.female')}</option>
                 </select>
               </div>
-              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>生年月日</label>
+              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>{t('mice.colBirthDay')}</label>
                 <input type="date" style={bulkInputStyle} value={bulkForm.birth_day} onChange={(e) => setBulkForm({ ...bulkForm, birth_day: e.target.value })} />
               </div>
-              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>ケージ</label>
+              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>{t('mice.colCage')}</label>
                 <select style={bulkInputStyle} value={bulkForm.cage_id} onChange={(e) => setBulkForm({ ...bulkForm, cage_id: e.target.value })}>
-                  <option value="">（変更しない）</option>
-                  <option value="0">未割当</option>
+                  <option value="">{t('mice.keepUnchanged')}</option>
+                  <option value="0">{t('mice.unassigned')}</option>
                   {cages.map((c) => <option key={c.id} value={c.id}>{c.cage_id} {c.strain ? `(${c.strain})` : ''}</option>)}
                 </select>
               </div>
-              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>状態</label>
+              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>{t('mice.colStatus')}</label>
                 <select style={bulkInputStyle} value={bulkForm.status} onChange={(e) => setBulkForm({ ...bulkForm, status: e.target.value })}>
-                  <option value="">（変更しない）</option>
-                  <option value="active">Active</option>
-                  <option value="disposed">処分済み</option>
+                  <option value="">{t('mice.keepUnchanged')}</option>
+                  <option value="active">{t('mice.statusActive')}</option>
+                  <option value="disposed">{t('mice.statusDisposed')}</option>
                 </select>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
-              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>母親ID</label>
-                <input type="text" style={bulkInputStyle} placeholder="（変更しない）" value={bulkForm.mother_id} onChange={(e) => setBulkForm({ ...bulkForm, mother_id: e.target.value })} />
+              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>{t('mice.motherId')}</label>
+                <input type="text" style={bulkInputStyle} placeholder={t('mice.keepUnchanged')} value={bulkForm.mother_id} onChange={(e) => setBulkForm({ ...bulkForm, mother_id: e.target.value })} />
               </div>
-              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>父親ID</label>
-                <input type="text" style={bulkInputStyle} placeholder="（変更しない）" value={bulkForm.father_id} onChange={(e) => setBulkForm({ ...bulkForm, father_id: e.target.value })} />
+              <div style={bulkFieldStyle}><label style={bulkLabelStyle}>{t('mice.fatherId')}</label>
+                <input type="text" style={bulkInputStyle} placeholder={t('mice.keepUnchanged')} value={bulkForm.father_id} onChange={(e) => setBulkForm({ ...bulkForm, father_id: e.target.value })} />
               </div>
             </div>
             <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#4a5568' }}>マーキング</label>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#4a5568' }}>{t('mice.marking')}</label>
               </div>
               <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                 {(['none', 'fixed', 'sequential'] as const).map((mode) => (
                   <label key={mode} style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', color: '#2d3748' }}>
                     <input type="radio" name="markingMode" checked={bulkMarkingMode === mode} onChange={() => setBulkMarkingMode(mode)} />
-                    {mode === 'none' ? '変更しない' : mode === 'fixed' ? '一律変更' : '連番入力'}
+                    {mode === 'none' ? t('mice.markingModeNone') : mode === 'fixed' ? t('mice.markingModeFixed') : t('mice.markingModeSequential')}
                   </label>
                 ))}
               </div>
               {bulkMarkingMode === 'fixed' && (
-                <input type="text" style={bulkInputStyle} placeholder="例：(0,0) ― 空欄の場合はクリア" value={bulkMarkingFixed} onChange={(e) => setBulkMarkingFixed(e.target.value)} />
+                <input type="text" style={bulkInputStyle} placeholder={t('mice.markingFixedPlaceholder')} value={bulkMarkingFixed} onChange={(e) => setBulkMarkingFixed(e.target.value)} />
               )}
               {bulkMarkingMode === 'sequential' && (
                 <div>
                   <p style={{ fontSize: '0.75rem', color: '#718096', marginTop: 0, marginBottom: '0.5rem' }}>
-                    {selectedIds.size}件の個体に表示順で連番マーキングを割り当てます
+                    {t('mice.markingSequentialDescription', { n: selectedIds.size })}
                   </p>
                   <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem', alignItems: 'center' }}>
                     {bulkMarkingSeq.map((entry, idx) => (
                       <input key={idx} type="text" style={{ ...bulkInputStyle, width: '68px', textAlign: 'center' }} value={entry} onChange={(e) => { const next = [...bulkMarkingSeq]; next[idx] = e.target.value; setBulkMarkingSeq(next) }} />
                     ))}
                     <button style={{ padding: '0.35rem 0.7rem', background: '#718096', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }} onClick={() => setBulkMarkingSeq([...DEFAULT_EAR_PUNCH_SEQUENCE])}>
-                      リセット
+                      {t('mice.reset')}
                     </button>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <label style={{ fontSize: '0.75rem', color: '#718096', whiteSpace: 'nowrap' }}>開始位置:</label>
+                    <label style={{ fontSize: '0.75rem', color: '#718096', whiteSpace: 'nowrap' }}>{t('mice.startPosition')}</label>
                     <select style={{ ...bulkInputStyle, fontSize: '0.8rem' }} value={bulkMarkingSeqStart} onChange={(e) => setBulkMarkingSeqStart(Number(e.target.value))}>
                       {bulkMarkingSeq.map((entry, idx) => (
-                        <option key={idx} value={idx}>{idx + 1}番目: {entry}</option>
+                        <option key={idx} value={idx}>{t('mice.positionNth', { n: idx + 1, entry })}</option>
                       ))}
                     </select>
                   </div>
@@ -352,13 +354,13 @@ export default function MicePage() {
                     const previewMice = mice.filter((m) => selectedIds.has(m.id)).slice(0, 5)
                     return (
                       <div style={{ background: '#f7fafc', borderRadius: '6px', padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#4a5568' }}>
-                        <span style={{ fontWeight: 600 }}>プレビュー: </span>
+                        <span style={{ fontWeight: 600 }}>{t('mice.preview')}</span>
                         {previewMice.map((m, i) => (
                           <span key={m.id} style={{ margin: '0 0.3rem' }}>
                             {m.name}→<strong>{seqArr[i % seqArr.length]}</strong>
                           </span>
                         ))}
-                        {selectedIds.size > 5 && <span style={{ color: '#a0aec0' }}>…他{selectedIds.size - 5}件</span>}
+                        {selectedIds.size > 5 && <span style={{ color: '#a0aec0' }}>{t('mice.andMore', { n: selectedIds.size - 5 })}</span>}
                       </div>
                     )
                   })()}
@@ -368,20 +370,20 @@ export default function MicePage() {
             <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#4a5568' }}>genotype</label>
-                <button style={{ padding: '0.3rem 0.75rem', background: '#4299e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }} onClick={() => setBulkForm({ ...bulkForm, genotypeEdits: [...bulkForm.genotypeEdits, { key: '', value: '' }] })}>+ 追加</button>
+                <button style={{ padding: '0.3rem 0.75rem', background: '#4299e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }} onClick={() => setBulkForm({ ...bulkForm, genotypeEdits: [...bulkForm.genotypeEdits, { key: '', value: '' }] })}>{t('mice.add')}</button>
               </div>
               {bulkForm.genotypeEdits.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {bulkForm.genotypeEdits.map((edit, idx) => (
                     <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                        <label style={{ fontSize: '0.7rem', color: '#718096', fontWeight: 500 }}>遺伝型名</label>
-                        <input type="text" style={bulkInputStyle} placeholder="例：Foxn1Cre" value={edit.key} onChange={(e) => { const newEdits = [...bulkForm.genotypeEdits]; newEdits[idx].key = e.target.value; setBulkForm({ ...bulkForm, genotypeEdits: newEdits }) }} />
+                        <label style={{ fontSize: '0.7rem', color: '#718096', fontWeight: 500 }}>{t('mice.genotypeName')}</label>
+                        <input type="text" style={bulkInputStyle} placeholder={t('mice.genotypeNamePlaceholder')} value={edit.key} onChange={(e) => { const newEdits = [...bulkForm.genotypeEdits]; newEdits[idx].key = e.target.value; setBulkForm({ ...bulkForm, genotypeEdits: newEdits }) }} />
                       </div>
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                        <label style={{ fontSize: '0.7rem', color: '#718096', fontWeight: 500 }}>値</label>
+                        <label style={{ fontSize: '0.7rem', color: '#718096', fontWeight: 500 }}>{t('mice.value')}</label>
                         <select style={bulkInputStyle} value={edit.value} onChange={(e) => { const newEdits = [...bulkForm.genotypeEdits]; newEdits[idx].value = e.target.value; setBulkForm({ ...bulkForm, genotypeEdits: newEdits }) }}>
-                          <option value="">（選択）</option>
+                          <option value="">{t('mice.selectPlaceholder')}</option>
                           <option value="homo">homo</option>
                           <option value="hetero">hetero</option>
                           <option value="null">null</option>
@@ -395,8 +397,8 @@ export default function MicePage() {
             </div>
             {bulkError && <p style={{ color: '#e53e3e', fontSize: '0.85rem', marginTop: '0.75rem' }}>{bulkError}</p>}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button style={cancelBtnStyle} onClick={() => setShowBulkEdit(false)}>キャンセル</button>
-              <button style={saveBtnStyle} onClick={handleBulkEdit} disabled={bulkSaving}>{bulkSaving ? '更新中...' : '一括更新'}</button>
+              <button style={cancelBtnStyle} onClick={() => setShowBulkEdit(false)}>{t('common.cancel')}</button>
+              <button style={saveBtnStyle} onClick={handleBulkEdit} disabled={bulkSaving}>{bulkSaving ? t('mice.updating') : t('mice.bulkUpdate')}</button>
             </div>
           </div>
         </div>

@@ -7,11 +7,11 @@ export async function POST(req: NextRequest) {
   const allowSelfRegistration = process.env.ALLOW_SELF_REGISTRATION === 'true'
 
   if (!allowSelfRegistration) {
-    // セルフ登録無効時は認証済みセッションが必要（管理者による招待登録）
+    // When self-registration is disabled, an authenticated session is required (admin-invited registration)
     const session = await auth()
     if (!session) {
       return NextResponse.json(
-        { error: 'ユーザー登録は管理者のみ実行できます。ログイン後に操作してください。' },
+        { error: 'Only administrators can register users. Please log in first.' },
         { status: 403 },
       )
     }
@@ -21,12 +21,12 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return NextResponse.json({ error: 'リクエストボディが不正です。' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
   }
 
   // Validate input types
   if (typeof body !== 'object' || body === null) {
-    return NextResponse.json({ error: 'リクエストボディが不正です。' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
   }
 
   const bodyObj = body as Record<string, unknown>
@@ -37,14 +37,14 @@ export async function POST(req: NextRequest) {
   // Type checks
   if (typeof email !== 'string' || typeof password !== 'string') {
     return NextResponse.json(
-      { error: 'email と password は必須です。' },
+      { error: 'Email and password are required.' },
       { status: 400 },
     )
   }
 
   if (full_name !== undefined && typeof full_name !== 'string') {
     return NextResponse.json(
-      { error: 'full_name は文字列である必要があります。' },
+      { error: 'full_name must be a string.' },
       { status: 400 },
     )
   }
@@ -52,35 +52,35 @@ export async function POST(req: NextRequest) {
   // Length validation
   if (email.length === 0 || password.length === 0) {
     return NextResponse.json(
-      { error: 'email と password は必須です。' },
+      { error: 'Email and password are required.' },
       { status: 400 },
     )
   }
 
   if (email.length > 254) {
     return NextResponse.json(
-      { error: 'メールアドレスが長すぎます。254文字以下にしてください。' },
+      { error: 'Email is too long. Please use 254 characters or fewer.' },
       { status: 400 },
     )
   }
 
   if (password.length < 8) {
     return NextResponse.json(
-      { error: 'パスワードは8文字以上で入力してください。' },
+      { error: 'Password must be at least 8 characters.' },
       { status: 400 },
     )
   }
 
   if (password.length > 128) {
     return NextResponse.json(
-      { error: 'パスワードが長すぎます。128文字以下にしてください。' },
+      { error: 'Password is too long. Please use 128 characters or fewer.' },
       { status: 400 },
     )
   }
 
   if (full_name && full_name.length > 100) {
     return NextResponse.json(
-      { error: '名前が長すぎます。100文字以下にしてください。' },
+      { error: 'Name is too long. Please use 100 characters or fewer.' },
       { status: 400 },
     )
   }
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(email)) {
     return NextResponse.json(
-      { error: 'メールアドレスの形式が正しくありません。' },
+      { error: 'Email format is invalid.' },
       { status: 400 },
     )
   }
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
     return NextResponse.json(
-      { error: 'このメールアドレスは既に登録されています。' },
+      { error: 'This email is already registered.' },
       { status: 409 },
     )
   }

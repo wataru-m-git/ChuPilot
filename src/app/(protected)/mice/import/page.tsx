@@ -3,6 +3,7 @@ import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Workbook } from 'exceljs'
 import { bulkCreateMice } from '@/lib/db'
+import { useI18n } from '@/i18n/I18nProvider'
 
 // ─── Column header → DB field mapping ───────────────────────────────────────
 const HEADER_TO_FIELD: Record<string, string> = {
@@ -156,6 +157,7 @@ function parseSheet(worksheet: any): { rows: ParsedRow[]; skipped: number } {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function ImportPage() {
+  const { t } = useI18n()
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -171,7 +173,7 @@ export default function ImportPage() {
 
   const loadFile = useCallback((file: File) => {
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
-      setParseError('Excelファイル (.xlsx / .xls) を選択してください')
+      setParseError(t('miceImport.errSelectExcel'))
       return
     }
     setParseError('')
@@ -205,11 +207,11 @@ export default function ImportPage() {
         setSkippedCount(skipped)
         setStep('preview')
       } catch (err) {
-        setParseError('ファイルの読み込みに失敗しました: ' + (err as Error).message)
+        setParseError(t('miceImport.errLoadFailed') + (err as Error).message)
       }
     }
     reader.readAsArrayBuffer(file)
-  }, [])
+  }, [t])
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -243,7 +245,7 @@ export default function ImportPage() {
       success += result.success.length
       for (const e of result.errors) {
         const row = batch[e.index]
-        errors.push(`${row?.name ?? `行${i + e.index + 1}`}: ${e.error}`)
+        errors.push(`${row?.name ?? t('miceImport.rowLabel', { n: i + e.index + 1 })}: ${e.error}`)
       }
     }
 
@@ -258,16 +260,16 @@ export default function ImportPage() {
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-        <button onClick={() => router.back()} style={styles.backBtn}>← 戻る</button>
-        <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>Excelインポート</h1>
+        <button onClick={() => router.back()} style={styles.backBtn}>{t('miceImport.back')}</button>
+        <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>{t('miceImport.title')}</h1>
       </div>
 
       {/* ── Step 1: Upload ── */}
       {step === 'upload' && (
         <div>
           <p style={{ color: '#4a5568', marginBottom: '1.5rem' }}>
-            個体リストのExcelファイル(.xlsx)をアップロードしてください。<br />
-            列ヘッダー（name, Strain, Birth day など）を自動検出してインポートします。
+            {t('miceImport.intro1')}<br />
+            {t('miceImport.intro2')}
           </p>
           <div
             style={{
@@ -281,7 +283,7 @@ export default function ImportPage() {
             onClick={() => fileInputRef.current?.click()}
           >
             <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📂</div>
-            <div style={{ fontWeight: 600, color: '#2d3748' }}>クリックまたはドラッグ＆ドロップ</div>
+            <div style={{ fontWeight: 600, color: '#2d3748' }}>{t('miceImport.dropZone')}</div>
             <div style={{ fontSize: '0.85rem', color: '#718096', marginTop: '0.25rem' }}>.xlsx / .xls</div>
           </div>
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleFileInput} />
@@ -295,7 +297,7 @@ export default function ImportPage() {
           {/* Sheet selector */}
           {sheetNames.length > 1 && (
             <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <label style={{ fontWeight: 600 }}>シート:</label>
+              <label style={{ fontWeight: 600 }}>{t('miceImport.sheetLabel')}</label>
               <select value={selectedSheet} onChange={(e) => handleSheetChange(e.target.value)} style={styles.select}>
                 {sheetNames.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -304,15 +306,15 @@ export default function ImportPage() {
 
           {/* Summary */}
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-            <StatCard label="取り込み対象" value={parsedRows.length} color="#4299e1" />
-            <StatCard label="アクティブ" value={activeCount} color="#48bb78" />
-            <StatCard label="処分済み" value={disposedCount} color="#fc8181" />
-            <StatCard label="スキップ(空行)" value={skippedCount} color="#a0aec0" />
+            <StatCard label={t('miceImport.statTarget')} value={parsedRows.length} color="#4299e1" />
+            <StatCard label={t('miceImport.statActive')} value={activeCount} color="#48bb78" />
+            <StatCard label={t('miceImport.statDisposed')} value={disposedCount} color="#fc8181" />
+            <StatCard label={t('miceImport.statSkipped')} value={skippedCount} color="#a0aec0" />
           </div>
 
           {parsedRows.length === 0 ? (
             <div style={styles.errorBox}>
-              対応する列ヘッダーが見つかりませんでした。シートを変えるか、ファイル形式を確認してください。
+              {t('miceImport.noHeaders')}
             </div>
           ) : (
             <>
@@ -321,7 +323,7 @@ export default function ImportPage() {
                 <table style={styles.table}>
                   <thead>
                     <tr style={{ background: '#f7fafc' }}>
-                      {['個体ID', '系統', '性別', '誕生日', 'ステータス', '遺伝子型(Ehf_cKO)', 'ノート'].map((h) => (
+                      {[t('miceImport.colId'), t('miceImport.colStrain'), t('miceImport.colSex'), t('miceImport.colBirthday'), t('miceImport.colStatus'), t('miceImport.colGenotypeEhf'), t('miceImport.colNotes')].map((h) => (
                         <th key={h} style={styles.th}>{h}</th>
                       ))}
                     </tr>
@@ -335,7 +337,7 @@ export default function ImportPage() {
                         <td style={styles.td}>{row.birth_day ?? '-'}</td>
                         <td style={styles.td}>
                           <span style={{ ...styles.badge, background: row.status === 'disposed' ? '#fed7d7' : '#c6f6d5', color: row.status === 'disposed' ? '#c53030' : '#276749' }}>
-                            {row.status === 'disposed' ? '処分済み' : 'アクティブ'}
+                            {row.status === 'disposed' ? t('miceImport.statusDisposed') : t('miceImport.statusActive')}
                           </span>
                         </td>
                         <td style={styles.td}>{row.genotype_Ehf_cKO ?? '-'}</td>
@@ -346,17 +348,17 @@ export default function ImportPage() {
                 </table>
                 {parsedRows.length > 200 && (
                   <div style={{ padding: '0.5rem 1rem', background: '#f7fafc', color: '#718096', fontSize: '0.85rem', borderTop: '1px solid #e2e8f0' }}>
-                    ※ 先頭200件を表示中（全{parsedRows.length}件）
+                    {t('miceImport.previewLimit', { n: parsedRows.length })}
                   </div>
                 )}
               </div>
 
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <button onClick={() => { setStep('upload'); setWorkbook(null) }} style={styles.cancelBtn}>
-                  ← ファイルを選び直す
+                  {t('miceImport.reselectFile')}
                 </button>
                 <button onClick={handleImport} disabled={importing} style={{ ...styles.importBtn, opacity: importing ? 0.6 : 1 }}>
-                  {importing ? 'インポート中...' : `${parsedRows.length}件をインポート`}
+                  {importing ? t('miceImport.importing') : t('miceImport.importCount', { n: parsedRows.length })}
                 </button>
               </div>
             </>
@@ -372,18 +374,18 @@ export default function ImportPage() {
               {importResult.errors.length === 0 ? '✅' : '⚠️'}
             </div>
             <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-              {importResult.success}件のインポートが完了しました
+              {t('miceImport.doneSuccess', { n: importResult.success })}
             </div>
             {importResult.errors.length > 0 && (
               <div style={{ marginTop: '0.5rem', color: '#c53030', fontSize: '0.9rem' }}>
-                {importResult.errors.length}件のエラーがありました
+                {t('miceImport.doneErrors', { n: importResult.errors.length })}
               </div>
             )}
           </div>
 
           {importResult.errors.length > 0 && (
             <div style={{ marginTop: '1rem' }}>
-              <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>エラー一覧（重複IDなど）:</div>
+              <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{t('miceImport.errorListTitle')}</div>
               <div style={{ ...styles.errorBox, maxHeight: '200px', overflowY: 'auto' }}>
                 {importResult.errors.map((e, i) => <div key={i} style={{ marginBottom: '0.25rem' }}>{e}</div>)}
               </div>
@@ -392,10 +394,10 @@ export default function ImportPage() {
 
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
             <button onClick={() => { setStep('upload'); setWorkbook(null); setImportResult(null) }} style={styles.cancelBtn}>
-              別のファイルをインポート
+              {t('miceImport.importAnother')}
             </button>
             <button onClick={() => router.push('/mice')} style={styles.importBtn}>
-              個体一覧へ →
+              {t('miceImport.toMiceList')}
             </button>
           </div>
         </div>

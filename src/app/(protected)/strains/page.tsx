@@ -2,8 +2,10 @@
 import { useEffect, useState } from 'react'
 import { getStrains, createStrain, updateStrain, deleteStrain, bulkCreateStrains } from '@/lib/db'
 import type { Strain } from '@/types'
+import { useI18n } from '@/i18n/I18nProvider'
 
 export default function StrainsPage() {
+  const { t } = useI18n()
   const [strains, setStrains] = useState<Strain[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -44,7 +46,7 @@ export default function StrainsPage() {
   const handleSave = async () => {
     if (!editingStrain) return
     if (!editingStrain.name.trim()) {
-      setError('系統名を入力してください')
+      setError(t('strains.errNameRequired'))
       return
     }
     setSaving(true)
@@ -62,19 +64,19 @@ export default function StrainsPage() {
       setShowModal(false)
       fetchStrains()
     } catch (e: unknown) {
-      setError((e as Error).message || '保存に失敗しました')
+      setError((e as Error).message || t('strains.errSaveFailed'))
     } finally {
       setSaving(false)
     }
   }
 
   const handleDelete = async (s: Strain) => {
-    if (!confirm(`「${s.name}」を削除しますか？`)) return
+    if (!confirm(t('strains.confirmDelete', { name: s.name }))) return
     try {
       await deleteStrain(s.id)
       fetchStrains()
     } catch (e: unknown) {
-      alert((e as Error).message || '削除に失敗しました')
+      alert((e as Error).message || t('strains.errDeleteFailed'))
     }
   }
 
@@ -82,14 +84,14 @@ export default function StrainsPage() {
     setBulkError('')
     const lines = bulkText.split('\n').map((l) => l.trim()).filter(Boolean)
     if (lines.length === 0) {
-      setBulkError('系統名を1行1つで入力してください')
+      setBulkError(t('strains.bulkErrEmpty'))
       return
     }
     setBulkSaving(true)
     try {
       const { created, skipped } = await bulkCreateStrains(lines)
       if (created.length === 0) {
-        setBulkError('入力された系統名はすべて既に登録されています')
+        setBulkError(t('strains.bulkErrAllExist'))
         setBulkSaving(false)
         return
       }
@@ -97,10 +99,10 @@ export default function StrainsPage() {
       setBulkMode(false)
       fetchStrains()
       if (skipped.length > 0) {
-        setBulkError(`${skipped.length}件はスキップ（重複）: ${skipped.join(', ')}`)
+        setBulkError(t('strains.bulkSkipped', { count: skipped.length, names: skipped.join(', ') }))
       }
     } catch (e: unknown) {
-      setBulkError((e as Error).message || '一括登録に失敗しました')
+      setBulkError((e as Error).message || t('strains.bulkErrFailed'))
     } finally {
       setBulkSaving(false)
     }
@@ -109,22 +111,22 @@ export default function StrainsPage() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h2 style={styles.title}>系統登録</h2>
+        <h2 style={styles.title}>{t('strains.title')}</h2>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button style={styles.bulkBtn} onClick={() => { setBulkMode(!bulkMode); setBulkError('') }}>
-            {bulkMode ? '× 一括登録を閉じる' : '一括登録'}
+            {bulkMode ? t('strains.closeBulk') : t('strains.bulkRegister')}
           </button>
-          <button style={styles.addBtn} onClick={openNew}>+ 新規系統</button>
+          <button style={styles.addBtn} onClick={openNew}>{t('strains.newStrain')}</button>
         </div>
       </div>
 
       {/* Bulk register panel */}
       {bulkMode && (
         <div style={styles.bulkPanel}>
-          <h3 style={styles.bulkTitle}>一括登録（1行1系統）</h3>
+          <h3 style={styles.bulkTitle}>{t('strains.bulkPanelTitle')}</h3>
           <textarea
             style={styles.bulkTextarea}
-            placeholder={'例:\nFoxn1Cre\nEhf_cKO\nAscl1CreERT2'}
+            placeholder={t('strains.bulkPlaceholder')}
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
             rows={8}
@@ -132,10 +134,10 @@ export default function StrainsPage() {
           {bulkError && <p style={styles.errText}>{bulkError}</p>}
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
             <button style={styles.cancelBtn} onClick={() => { setBulkMode(false); setBulkText(''); setBulkError('') }}>
-              キャンセル
+              {t('common.cancel')}
             </button>
             <button style={styles.saveBtn} onClick={handleBulkRegister} disabled={bulkSaving}>
-              {bulkSaving ? '登録中...' : '一括登録'}
+              {bulkSaving ? t('strains.registering') : t('strains.bulkRegister')}
             </button>
           </div>
         </div>
@@ -143,23 +145,23 @@ export default function StrainsPage() {
 
       {/* Strain list */}
       {loading ? (
-        <div style={styles.loading}>読み込み中...</div>
+        <div style={styles.loading}>{t('common.loading')}</div>
       ) : (
         <div style={styles.tableWrapper}>
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>系統名</th>
-                <th style={styles.th}>説明</th>
-                <th style={styles.th}>登録日</th>
-                <th style={{ ...styles.th, width: '120px' }}>操作</th>
+                <th style={styles.th}>{t('strains.colName')}</th>
+                <th style={styles.th}>{t('strains.colDescription')}</th>
+                <th style={styles.th}>{t('strains.colRegisteredDate')}</th>
+                <th style={{ ...styles.th, width: '120px' }}>{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {strains.length === 0 ? (
                 <tr>
                   <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#a0aec0' }}>
-                    系統が登録されていません
+                    {t('strains.empty')}
                   </td>
                 </tr>
               ) : (
@@ -172,8 +174,8 @@ export default function StrainsPage() {
                     </td>
                     <td style={styles.td}>
                       <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        <button style={styles.editBtn} onClick={() => openEdit(s)}>編集</button>
-                        <button style={styles.deleteBtn} onClick={() => handleDelete(s)}>削除</button>
+                        <button style={styles.editBtn} onClick={() => openEdit(s)}>{t('common.edit')}</button>
+                        <button style={styles.deleteBtn} onClick={() => handleDelete(s)}>{t('common.delete')}</button>
                       </div>
                     </td>
                   </tr>
@@ -181,7 +183,7 @@ export default function StrainsPage() {
               )}
             </tbody>
           </table>
-          <div style={styles.count}>{strains.length} 件</div>
+          <div style={styles.count}>{t('strains.count', { n: strains.length })}</div>
         </div>
       )}
 
@@ -190,34 +192,34 @@ export default function StrainsPage() {
         <div style={styles.overlay}>
           <div style={styles.modal}>
             <h3 style={{ marginBottom: '1rem' }}>
-              {editingStrain.id ? '系統編集' : '新規系統登録'}
+              {editingStrain.id ? t('strains.editTitle') : t('strains.newTitle')}
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
-                <label style={styles.formLabel}>系統名 *</label>
+                <label style={styles.formLabel}>{t('strains.formNameLabel')}</label>
                 <input
                   style={styles.formInput}
                   value={editingStrain.name}
                   onChange={(e) => setEditingStrain({ ...editingStrain, name: e.target.value })}
-                  placeholder="例: Foxn1Cre"
+                  placeholder={t('strains.formNamePlaceholder')}
                   autoFocus
                 />
               </div>
               <div>
-                <label style={styles.formLabel}>説明</label>
+                <label style={styles.formLabel}>{t('strains.colDescription')}</label>
                 <input
                   style={styles.formInput}
                   value={editingStrain.description}
                   onChange={(e) => setEditingStrain({ ...editingStrain, description: e.target.value })}
-                  placeholder="任意のメモ"
+                  placeholder={t('strains.formDescPlaceholder')}
                 />
               </div>
             </div>
             {error && <p style={styles.errText}>{error}</p>}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button style={styles.cancelBtn} onClick={() => setShowModal(false)}>キャンセル</button>
+              <button style={styles.cancelBtn} onClick={() => setShowModal(false)}>{t('common.cancel')}</button>
               <button style={styles.saveBtn} onClick={handleSave} disabled={saving}>
-                {saving ? '保存中...' : '保存'}
+                {saving ? t('strains.saving') : t('common.save')}
               </button>
             </div>
           </div>

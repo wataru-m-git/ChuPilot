@@ -1,6 +1,6 @@
 'use server'
 /**
- * データアクセス層 — Prisma (SQLite) 実装
+ * Data-access layer — Prisma (SQLite) implementation
  */
 
 import { prisma } from '@/lib/prisma'
@@ -180,7 +180,7 @@ async function requireAuth(): Promise<string> {
   })
   if (!session?.user?.id) {
     console.error('[requireAuth] Auth failed')
-    throw new Error('認証が必要です')
+    throw new Error('Authentication required')
   }
   return session.user.id
 }
@@ -222,7 +222,7 @@ export async function getMice(
     if (filters.strain)  where.strain  = filters.strain
     if (filters.cage_id) where.cage_id = Number(filters.cage_id)
     if (filters.search) {
-      // SQLite の LIKE は ASCII で大文字小文字を区別しない
+      // SQLite's LIKE is case-insensitive for ASCII characters
       where.OR = [
         { name:   { contains: filters.search } },
         { strain: { contains: filters.search } },
@@ -290,7 +290,7 @@ export async function bulkCreateMice(
       success.push(toMouse(m))
     } catch (e) {
       console.error(`bulkCreateMice[${i}]:`, e)
-      errors.push({ index: i, error: '登録に失敗しました' })
+      errors.push({ index: i, error: 'Failed to register' })
     }
   }
   return { success, errors }
@@ -416,7 +416,7 @@ export async function deleteCage(id: number): Promise<void> {
   await requireAuth()
   const count = await prisma.mouse.count({ where: { cage_id: id } })
   if (count > 0)
-    throw new Error('ケージ内にマウスが存在します。先に移動してください。')
+    throw new Error('Mice still exist in this cage. Please move them first.')
   await prisma.cage.delete({ where: { id } })
 }
 
@@ -446,7 +446,7 @@ export async function getUncagedMice(): Promise<Mouse[]> {
   return rows.map(toMouse)
 }
 
-/** 指定棚の次の空きアルファベットを返す (A → B → ... → Z → AA ...) */
+/** Returns the next free letter for the given rack (A → B → ... → Z → AA ...) */
 export async function getNextCageLetter(rackPosition: string): Promise<string> {
   await requireAuth()
   const existing = await prisma.cage.findMany({
@@ -509,7 +509,7 @@ export async function updateRack(id: number, data: { slots?: number }): Promise<
     })
     if (maxOccupied._max.slot && maxOccupied._max.slot > data.slots) {
       const letter = String.fromCharCode(64 + maxOccupied._max.slot)
-      throw new Error(`スロット${letter}にケージが存在するため、${data.slots}スロットに減らせません。`)
+      throw new Error(`A cage exists in slot ${letter}, so the rack cannot be reduced to ${data.slots} slots.`)
     }
   }
   const r = await prisma.rack.update({
@@ -523,7 +523,7 @@ export async function deleteRack(id: number): Promise<void> {
   await requireAuth()
   const count = await prisma.cage.count({ where: { rack_id: id } })
   if (count > 0)
-    throw new Error('棚内にケージが存在します。先に移動してください。')
+    throw new Error('Cages still exist in this rack. Please move them first.')
   await prisma.rack.delete({ where: { id } })
 }
 
@@ -534,15 +534,15 @@ export async function placeCageInSlot(
 ): Promise<Cage> {
   await requireAuth()
   const rack = await prisma.rack.findUnique({ where: { id: rackId } })
-  if (!rack) throw new Error('棚が見つかりません')
-  if (slot < 1 || slot > rack.slots) throw new Error('無効なスロット位置です')
+  if (!rack) throw new Error('Rack not found')
+  if (slot < 1 || slot > rack.slots) throw new Error('Invalid slot position')
 
   // Check if slot is already occupied
   const occupant = await prisma.cage.findFirst({
     where: { rack_id: rackId, slot },
   })
   if (occupant && occupant.id !== cageId)
-    throw new Error('このスロットは既に使用されています')
+    throw new Error('This slot is already in use')
 
   // Generate new cage_id
   const slotLetter = String.fromCharCode(64 + slot)
@@ -673,7 +673,7 @@ export async function bulkCreateStrains(
   const created: Strain[] = []
   const skipped: string[] = []
 
-  // 既存の重複を一括チェック
+  // Bulk-check for existing duplicates
   const existing = await prisma.strain.findMany({
     where: { name: { in: names } },
     select: { name: true },
@@ -690,9 +690,9 @@ export async function bulkCreateStrains(
         data: { name, created_by: uid ?? null },
       })
       created.push(toStrain(s))
-      existingSet.add(name) // 入力リスト内の重複も対処
+      existingSet.add(name) // also handle duplicates within the input list
     } catch {
-      skipped.push(name) // 競合によるユニーク制約違反
+      skipped.push(name) // unique-constraint violation from a race condition
     }
   }
   return { created, skipped }
@@ -721,7 +721,7 @@ export async function getDashboardSummary(): Promise<{
   for (const m of activeMice) {
     if (m.sex === '♂') maleCount++
     if (m.sex === '♀') femaleCount++
-    const s = m.strain || '不明'
+    const s = m.strain || 'Unknown'
     strainMap[s] = (strainMap[s] || 0) + 1
   }
 
@@ -736,7 +736,7 @@ export async function getDashboardSummary(): Promise<{
   }
 }
 
-/** @deprecated use getDashboardSummary — 既存ページとの後方互換エイリアス */
+/** @deprecated use getDashboardSummary — backward-compatible alias for existing pages */
 export async function getDashboard(): Promise<DashboardSummary> {
   const s = await getDashboardSummary()
   return {

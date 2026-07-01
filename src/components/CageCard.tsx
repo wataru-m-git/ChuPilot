@@ -3,6 +3,7 @@ import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import type { Cage, Mouse } from '@/types'
 import { GenotypeBadgeList } from '@/components/GenotypeBadge'
+import { useI18n } from '@/i18n/I18nProvider'
 
 interface CageCardProps {
   cage: Cage
@@ -11,6 +12,7 @@ interface CageCardProps {
 }
 
 export default function CageCard({ cage, onEdit, slotLetter }: CageCardProps) {
+  const { t } = useI18n()
   // Droppable zone for mice
   const { setNodeRef: dropRef, isOver } = useDroppable({
     id: `cage-${cage.id}`,
@@ -45,9 +47,9 @@ export default function CageCard({ cage, onEdit, slotLetter }: CageCardProps) {
       }}
     >
       <div style={styles.cardHeader}>
-        <span style={styles.dragHandle} {...cageAttr} {...cageListen} title="ドラッグでケージを移動">⠿</span>
+        <span style={styles.dragHandle} {...cageAttr} {...cageListen} title={t('cageCard.dragToMove')}>⠿</span>
         <span style={styles.cageId}>{cage.cage_id}</span>
-        {cage.type === 'mating' && <span style={styles.matingBadge}>交配</span>}
+        {cage.type === 'mating' && <span style={styles.matingBadge}>{t('cageCard.mating')}</span>}
         {slotLetter && <span style={styles.slotBadge}>{slotLetter}</span>}
         <span style={styles.occupancy}>{occupancy}/{cage.capacity}</span>
         <button style={styles.editBtn} onClick={(e) => { e.stopPropagation(); onEdit(cage) }}>✏️</button>
@@ -65,7 +67,7 @@ export default function CageCard({ cage, onEdit, slotLetter }: CageCardProps) {
           <DraggableMouse key={m.id} mouse={m} sourceCageId={cage.id} />
         ))}
         {cage.mice.length === 0 && (
-          <div style={styles.empty}>（空）</div>
+          <div style={styles.empty}>{t('cageCard.empty')}</div>
         )}
       </div>
 

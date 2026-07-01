@@ -5,8 +5,10 @@ import { getMouse, deleteMouse, updateMouse } from '@/lib/db'
 import type { Mouse } from '@/types'
 import { getGenotypeNamesFromStrain } from '@/types'
 import { GenotypeBadge } from '@/components/GenotypeBadge'
+import { useI18n } from '@/i18n/I18nProvider'
 
 export default function MouseDetailPage() {
+  const { t } = useI18n()
   const { id } = useParams()
   const router = useRouter()
   const [mouse, setMouse] = useState<Mouse | null>(null)
@@ -29,6 +31,9 @@ export default function MouseDetailPage() {
   const handleDispose = async () => {
     if (!mouse) return
     const today = new Date().toISOString().split('T')[0]
+    // The disposal note is stored data, not UI text. Keep a canonical, locale-independent
+    // format ("YYYY-MM-DD処分 <memo>") so the disposed-list parser and the Excel-import
+    // "処分" detector recognize it regardless of the current UI language.
     await updateMouse(Number(id), {
       status: 'disposed',
       notes: disposeNote ? `${today}処分 ${disposeNote}` : `${today}処分`,
@@ -36,8 +41,8 @@ export default function MouseDetailPage() {
     router.push('/mice')
   }
 
-  if (loading) return <div style={{ padding: '2rem' }}>読み込み中...</div>
-  if (!mouse) return <div style={{ padding: '2rem' }}>個体が見つかりません</div>
+  if (loading) return <div style={{ padding: '2rem' }}>{t('common.loading')}</div>
+  if (!mouse) return <div style={{ padding: '2rem' }}>{t('miceDetail.notFound')}</div>
 
   return (
     <div style={styles.container}>
@@ -51,36 +56,36 @@ export default function MouseDetailPage() {
             background: mouse.status === 'active' ? '#c6f6d5' : '#fed7d7',
             color: mouse.status === 'active' ? '#276749' : '#9b2c2c',
           }}>
-            {mouse.status === 'active' ? 'Active' : '処分済み'}
+            {mouse.status === 'active' ? 'Active' : t('miceDetail.disposed')}
           </span>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button style={styles.editBtn} onClick={() => router.push(`/mice/${id}/edit`)}>編集</button>
+          <button style={styles.editBtn} onClick={() => router.push(`/mice/${id}/edit`)}>{t('common.edit')}</button>
           {mouse.status === 'active' && (
-            <button style={styles.disposeBtn} onClick={() => setDisposing(true)}>処分登録</button>
+            <button style={styles.disposeBtn} onClick={() => setDisposing(true)}>{t('miceDetail.registerDispose')}</button>
           )}
-          <button style={styles.deleteBtn} onClick={() => setConfirmDelete(true)}>削除</button>
+          <button style={styles.deleteBtn} onClick={() => setConfirmDelete(true)}>{t('common.delete')}</button>
         </div>
       </div>
 
       {/* Info sections */}
       <div style={styles.sections}>
-        <InfoSection title="基本情報">
-          <InfoRow label="系統名" value={mouse.strain} />
-          <InfoRow label="性別" value={mouse.sex} />
-          <InfoRow label="生年月日" value={mouse.birth_day} />
-          <InfoRow label="週齢" value={mouse.weeks != null ? `${mouse.weeks}w` : null} />
-          <InfoRow label="毛色" value={mouse.color} />
-          <InfoRow label="マーキング" value={mouse.marking} />
-          <InfoRow label="ケージ" value={mouse.cage_label} />
+        <InfoSection title={t('miceDetail.basicInfo')}>
+          <InfoRow label={t('miceDetail.strainName')} value={mouse.strain} />
+          <InfoRow label={t('miceDetail.sex')} value={mouse.sex} />
+          <InfoRow label={t('miceDetail.dateOfBirth')} value={mouse.birth_day} />
+          <InfoRow label={t('miceDetail.weeks')} value={mouse.weeks != null ? `${mouse.weeks}w` : null} />
+          <InfoRow label={t('miceDetail.coatColor')} value={mouse.color} />
+          <InfoRow label={t('miceDetail.marking')} value={mouse.marking} />
+          <InfoRow label={t('miceDetail.cage')} value={mouse.cage_label} />
         </InfoSection>
 
-        <InfoSection title="親情報">
-          <InfoRow label="母親ID" value={mouse.mother_id} />
-          <InfoRow label="父親ID" value={mouse.father_id} />
+        <InfoSection title={t('miceDetail.parentInfo')}>
+          <InfoRow label={t('miceDetail.motherId')} value={mouse.mother_id} />
+          <InfoRow label={t('miceDetail.fatherId')} value={mouse.father_id} />
         </InfoSection>
 
-        <InfoSection title="遺伝子型">
+        <InfoSection title={t('miceDetail.genotype')}>
           {getGenotypeNamesFromStrain(mouse.strain).length > 0 && mouse.genotypes && Object.keys(mouse.genotypes).length > 0 ? (
             <>
               {getGenotypeNamesFromStrain(mouse.strain).map((name) => (
@@ -96,42 +101,42 @@ export default function MouseDetailPage() {
             <span style={{ color: '#a0aec0' }}>-</span>
           )}
           <div>
-            <div style={{ fontSize: '0.75rem', color: '#718096', fontWeight: 600 }}>判定日</div>
+            <div style={{ fontSize: '0.75rem', color: '#718096', fontWeight: 600 }}>{t('miceDetail.typingDate')}</div>
             <div style={{ fontSize: '0.9rem', color: '#2d3748', marginTop: '0.2rem' }}>{mouse.typing_date || '-'}</div>
           </div>
         </InfoSection>
 
-        <InfoSection title="備考">
+        <InfoSection title={t('miceDetail.notes')}>
           <p style={{ margin: 0, fontSize: '0.9rem', color: '#4a5568', whiteSpace: 'pre-wrap' }}>
-            {mouse.notes || 'なし'}
+            {mouse.notes || t('miceDetail.none')}
           </p>
         </InfoSection>
       </div>
 
       {/* Dispose modal */}
       {disposing && (
-        <Modal title="処分登録" onClose={() => setDisposing(false)}>
-          <p style={{ marginBottom: '0.75rem' }}>処分理由・メモを入力してください。</p>
+        <Modal title={t('miceDetail.registerDispose')} onClose={() => setDisposing(false)}>
+          <p style={{ marginBottom: '0.75rem' }}>{t('miceDetail.disposePrompt')}</p>
           <textarea
             style={{ width: '100%', minHeight: '80px', padding: '0.5rem', border: '1px solid #cbd5e0', borderRadius: '6px', boxSizing: 'border-box' }}
-            placeholder="例：実験終了、解剖"
+            placeholder={t('miceDetail.disposePlaceholder')}
             value={disposeNote}
             onChange={(e) => setDisposeNote(e.target.value)}
           />
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-            <button style={styles.cancelBtn} onClick={() => setDisposing(false)}>キャンセル</button>
-            <button style={styles.disposeBtn} onClick={handleDispose}>処分登録</button>
+            <button style={styles.cancelBtn} onClick={() => setDisposing(false)}>{t('common.cancel')}</button>
+            <button style={styles.disposeBtn} onClick={handleDispose}>{t('miceDetail.registerDispose')}</button>
           </div>
         </Modal>
       )}
 
       {/* Delete confirm modal */}
       {confirmDelete && (
-        <Modal title="削除確認" onClose={() => setConfirmDelete(false)}>
-          <p>{mouse.name} を完全に削除しますか？この操作は元に戻せません。</p>
+        <Modal title={t('miceDetail.deleteConfirm')} onClose={() => setConfirmDelete(false)}>
+          <p>{t('miceDetail.deleteConfirmMessage', { name: mouse.name })}</p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-            <button style={styles.cancelBtn} onClick={() => setConfirmDelete(false)}>キャンセル</button>
-            <button style={styles.deleteBtn} onClick={handleDelete}>削除する</button>
+            <button style={styles.cancelBtn} onClick={() => setConfirmDelete(false)}>{t('common.cancel')}</button>
+            <button style={styles.deleteBtn} onClick={handleDelete}>{t('miceDetail.deleteAction')}</button>
           </div>
         </Modal>
       )}

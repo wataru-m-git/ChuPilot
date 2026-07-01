@@ -2,21 +2,24 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
+import { useI18n } from '@/i18n/I18nProvider'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export default function Layout({ children, userEmail }: { children: React.ReactNode; userEmail?: string }) {
   const pathname = usePathname()
+  const { t } = useI18n()
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/login' })
   }
 
   const navItems = [
-    { href: '/dashboard', label: 'ダッシュボード', icon: '📊' },
-    { href: '/mice', label: '個体一覧', icon: '🐁' },
-    { href: '/mice/disposed', label: '処分済み個体', icon: '🗑️' },
-    { href: '/mice/import', label: 'Excelインポート', icon: '📥' },
-    { href: '/cages', label: 'ケージビュー', icon: '🏠' },
-    { href: '/strains', label: '系統登録', icon: '🧬' },
+    { href: '/dashboard', label: t('nav.dashboard'), icon: '📊' },
+    { href: '/mice', label: t('nav.mice'), icon: '🐁' },
+    { href: '/mice/disposed', label: t('nav.disposed'), icon: '🗑️' },
+    { href: '/mice/import', label: t('nav.import'), icon: '📥' },
+    { href: '/cages', label: t('nav.cages'), icon: '🏠' },
+    { href: '/strains', label: t('nav.strains'), icon: '🧬' },
   ]
 
   const isNavItemActive = (href: string) => {
@@ -41,8 +44,9 @@ export default function Layout({ children, userEmail }: { children: React.ReactN
           ))}
         </nav>
         <div style={styles.userSection}>
+          <LanguageSwitcher />
           <div style={styles.userEmail}>{userEmail || ''}</div>
-          <button style={styles.logoutBtn} onClick={handleLogout}>ログアウト</button>
+          <button style={styles.logoutBtn} onClick={handleLogout}>{t('common.logout')}</button>
         </div>
       </aside>
       <main style={styles.main}>{children}</main>

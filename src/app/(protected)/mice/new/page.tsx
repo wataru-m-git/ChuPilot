@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { getCages, getStrains, bulkCreateMice } from '@/lib/db'
 import type { Cage, Strain } from '@/types'
 import { GENOTYPE_OPTIONS, getGenotypeNamesFromStrain } from '@/types'
+import { useI18n } from '@/i18n/I18nProvider'
 
 const DEFAULT_EAR_PUNCH_SEQUENCE = [
   '(0,0)', '(0,1)', '(1,0)', '(1,1)', '(0,2)', '(2,0)', '(1,2)', '(2,1)', '(2,2)',
@@ -40,6 +41,7 @@ const emptyRow = (): MouseRow => ({
 type Step = 1 | 2
 
 export default function MouseBulkRegisterPage() {
+  const { t } = useI18n()
   const router = useRouter()
   const [step, setStep] = useState<Step>(1)
 
@@ -70,7 +72,7 @@ export default function MouseBulkRegisterPage() {
 
   const handleStep1Next = () => {
     if (count < 1 || count > 50) {
-      setError('匹数は1〜50の範囲で入力してください')
+      setError(t('miceNew.errorCountRange'))
       return
     }
     setError('')
@@ -170,7 +172,7 @@ export default function MouseBulkRegisterPage() {
 
     for (let i = 0; i < rows.length; i++) {
       if (!rows[i].name.trim()) {
-        setError(`${i + 1}行目の個体IDを入力してください`)
+        setError(t('miceNew.errorRowIdRequired', { n: i + 1 }))
         return
       }
     }
@@ -178,7 +180,7 @@ export default function MouseBulkRegisterPage() {
     const names = rows.map((r) => r.name.trim())
     const uniqueNames = new Set(names)
     if (uniqueNames.size !== names.length) {
-      setError('個体ID内に重複があります')
+      setError(t('miceNew.errorDuplicateId'))
       return
     }
 
@@ -205,7 +207,7 @@ export default function MouseBulkRegisterPage() {
       await bulkCreateMice(payload as Parameters<typeof bulkCreateMice>[0])
       router.push('/mice')
     } catch (e: unknown) {
-      setError((e as Error).message || '登録に失敗しました')
+      setError((e as Error).message || t('miceNew.errorRegisterFailed'))
     } finally {
       setSaving(false)
     }
@@ -214,12 +216,12 @@ export default function MouseBulkRegisterPage() {
   if (step === 1) {
     return (
       <div style={styles.container}>
-        <h2 style={styles.title}>個体一括登録</h2>
+        <h2 style={styles.title}>{t('miceNew.title')}</h2>
         <div style={styles.step1Card}>
-          <h3 style={styles.step1Title}>Step 1 : 匹数と系統の選択</h3>
+          <h3 style={styles.step1Title}>{t('miceNew.step1Title')}</h3>
           <div style={styles.step1Grid}>
             <div style={styles.step1Field}>
-              <label style={styles.label}>登録匹数 *</label>
+              <label style={styles.label}>{t('miceNew.countLabel')}</label>
               <input
                 type="number"
                 style={styles.input}
@@ -230,9 +232,9 @@ export default function MouseBulkRegisterPage() {
               />
             </div>
             <div style={styles.step1Field}>
-              <label style={styles.label}>系統名</label>
+              <label style={styles.label}>{t('miceNew.strainLabel')}</label>
               <select style={styles.input} value={selectedStrain} onChange={(e) => setSelectedStrain(e.target.value)}>
-                <option value="">（なし）</option>
+                <option value="">{t('miceNew.none')}</option>
                 {strains.map((s) => (
                   <option key={s.id} value={s.name}>{s.name}</option>
                 ))}
@@ -241,8 +243,8 @@ export default function MouseBulkRegisterPage() {
           </div>
           {error && <p style={styles.errText}>{error}</p>}
           <div style={styles.step1Actions}>
-            <button style={styles.cancelBtn} onClick={() => router.push('/mice')}>キャンセル</button>
-            <button style={styles.nextBtn} onClick={handleStep1Next}>次へ →</button>
+            <button style={styles.cancelBtn} onClick={() => router.push('/mice')}>{t('common.cancel')}</button>
+            <button style={styles.nextBtn} onClick={handleStep1Next}>{t('miceNew.next')}</button>
           </div>
         </div>
       </div>
@@ -253,52 +255,52 @@ export default function MouseBulkRegisterPage() {
     <div style={styles.container}>
       <div style={styles.header}>
         <div>
-          <h2 style={styles.title}>個体一括登録</h2>
+          <h2 style={styles.title}>{t('miceNew.title')}</h2>
           <p style={styles.subtitle}>
-            系統: <strong>{selectedStrain || '（なし）'}</strong> / {rows.length}匹
+            {t('miceNew.strainLabelInline')} <strong>{selectedStrain || t('miceNew.none')}</strong> / {t('miceNew.mouseCount', { n: rows.length })}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button style={styles.cancelBtn} onClick={() => setStep(1)}>← 戻る</button>
+          <button style={styles.cancelBtn} onClick={() => setStep(1)}>{t('miceNew.back')}</button>
         </div>
       </div>
 
       {/* Shared values quick-fill */}
       <div style={styles.sharedPanel}>
-        <span style={styles.sharedTitle}>一括入力</span>
+        <span style={styles.sharedTitle}>{t('miceNew.bulkInput')}</span>
         <select style={styles.sharedInput} value={sharedSex} onChange={(e) => setSharedSex(e.target.value)}>
-          <option value="">性別...</option>
-          <option value="♂">♂ オス</option>
-          <option value="♀">♀ メス</option>
+          <option value="">{t('miceNew.sexPlaceholder')}</option>
+          <option value="♂">{t('miceNew.male')}</option>
+          <option value="♀">{t('miceNew.female')}</option>
         </select>
         <input type="date" style={styles.sharedInput} value={sharedBirthDay}
-          onChange={(e) => setSharedBirthDay(e.target.value)} placeholder="生年月日..." />
+          onChange={(e) => setSharedBirthDay(e.target.value)} placeholder={t('miceNew.birthDayPlaceholder')} />
         <select style={styles.sharedInput} value={sharedCageId} onChange={(e) => setSharedCageId(e.target.value)}>
-          <option value="">ケージ...</option>
+          <option value="">{t('miceNew.cagePlaceholder')}</option>
           {cages.map((c) => (
             <option key={c.id} value={c.id}>{c.cage_id} {c.strain ? `(${c.strain})` : ''}</option>
           ))}
         </select>
-        <button style={styles.applyBtn} onClick={applyShared}>全行に適用</button>
+        <button style={styles.applyBtn} onClick={applyShared}>{t('miceNew.applyToAll')}</button>
         <button
           style={{ ...styles.applyBtn, background: showGenotypes ? '#553c9a' : '#805ad5' }}
           onClick={() => setShowGenotypes(!showGenotypes)}
         >
-          {showGenotypes ? '遺伝子型を隠す' : '遺伝子型を表示'}
+          {showGenotypes ? t('miceNew.hideGenotypes') : t('miceNew.showGenotypes')}
         </button>
       </div>
 
       {/* Auto-fill options */}
       <div style={styles.autoFillPanel}>
-        <span style={styles.sharedTitle}>自動入力</span>
+        <span style={styles.sharedTitle}>{t('miceNew.autoFill')}</span>
         <label style={styles.toggleLabel}>
           <input
             type="checkbox"
             checked={autoFillName}
             onChange={(e) => toggleAutoFillName(e.target.checked)}
           />
-          <span>個体番号を連番入力</span>
-          <span style={styles.toggleHint}>（最上段に数字を含む番号を入力すると以降を自動連番）</span>
+          <span>{t('miceNew.autoFillNameLabel')}</span>
+          <span style={styles.toggleHint}>{t('miceNew.autoFillNameHint')}</span>
         </label>
         <label style={styles.toggleLabel}>
           <input
@@ -306,8 +308,8 @@ export default function MouseBulkRegisterPage() {
             checked={autoFillMarking}
             onChange={(e) => toggleAutoFillMarking(e.target.checked)}
           />
-          <span>耳パンチを自動入力</span>
-          <span style={styles.toggleHint}>（下の順番に従って自動入力）</span>
+          <span>{t('miceNew.autoFillMarkingLabel')}</span>
+          <span style={styles.toggleHint}>{t('miceNew.autoFillMarkingHint')}</span>
         </label>
       </div>
 
@@ -317,19 +319,19 @@ export default function MouseBulkRegisterPage() {
           <thead>
             <tr>
               <th style={styles.th}>#</th>
-              <th style={styles.th}>個体ID *</th>
-              <th style={styles.th}>性別</th>
-              <th style={styles.th}>生年月日</th>
-              <th style={styles.th}>毛色</th>
-              <th style={styles.th}>マーキング</th>
-              <th style={styles.th}>ケージ</th>
-              <th style={styles.th}>母親ID</th>
-              <th style={styles.th}>父親ID</th>
+              <th style={styles.th}>{t('miceNew.colId')}</th>
+              <th style={styles.th}>{t('miceNew.colSex')}</th>
+              <th style={styles.th}>{t('miceNew.colBirthDay')}</th>
+              <th style={styles.th}>{t('miceNew.colColor')}</th>
+              <th style={styles.th}>{t('miceNew.colMarking')}</th>
+              <th style={styles.th}>{t('miceNew.colCage')}</th>
+              <th style={styles.th}>{t('miceNew.colMotherId')}</th>
+              <th style={styles.th}>{t('miceNew.colFatherId')}</th>
               {showGenotypes && getGenotypeNamesFromStrain(selectedStrain).map((name) => (
                 <th key={name} style={styles.th}>{name}</th>
               ))}
-              {showGenotypes && <th style={styles.th}>判定日</th>}
-              <th style={styles.th}>備考</th>
+              {showGenotypes && <th style={styles.th}>{t('miceNew.colTypingDate')}</th>}
+              <th style={styles.th}>{t('miceNew.colNotes')}</th>
             </tr>
           </thead>
           <tbody>
@@ -343,7 +345,7 @@ export default function MouseBulkRegisterPage() {
                     onChange={(e) =>
                       idx === 0 ? handleRow0NameChange(e.target.value) : updateRow(idx, 'name', e.target.value)
                     }
-                    placeholder="例: WM_001"
+                    placeholder={t('miceNew.idPlaceholder')}
                   />
                 </td>
                 <td style={styles.td}>
@@ -369,7 +371,7 @@ export default function MouseBulkRegisterPage() {
                 <td style={styles.td}>
                   <select style={styles.cellInput} value={row.cage_id}
                     onChange={(e) => updateRow(idx, 'cage_id', e.target.value)}>
-                    <option value="">未割当</option>
+                    <option value="">{t('miceNew.unassigned')}</option>
                     {cages.map((c) => (
                       <option key={c.id} value={c.id}>{c.cage_id}</option>
                     ))}
@@ -377,11 +379,11 @@ export default function MouseBulkRegisterPage() {
                 </td>
                 <td style={styles.td}>
                   <input style={styles.cellInput} value={row.mother_id}
-                    onChange={(e) => updateRow(idx, 'mother_id', e.target.value)} placeholder="母親ID" />
+                    onChange={(e) => updateRow(idx, 'mother_id', e.target.value)} placeholder={t('miceNew.colMotherId')} />
                 </td>
                 <td style={styles.td}>
                   <input style={styles.cellInput} value={row.father_id}
-                    onChange={(e) => updateRow(idx, 'father_id', e.target.value)} placeholder="父親ID" />
+                    onChange={(e) => updateRow(idx, 'father_id', e.target.value)} placeholder={t('miceNew.colFatherId')} />
                 </td>
                 {showGenotypes && getGenotypeNamesFromStrain(selectedStrain).map((name) => (
                   <td key={name} style={styles.td}>
@@ -410,7 +412,7 @@ export default function MouseBulkRegisterPage() {
                 )}
                 <td style={styles.td}>
                   <input style={styles.cellInput} value={row.notes}
-                    onChange={(e) => updateRow(idx, 'notes', e.target.value)} placeholder="備考" />
+                    onChange={(e) => updateRow(idx, 'notes', e.target.value)} placeholder={t('miceNew.colNotes')} />
                 </td>
               </tr>
             ))}
@@ -420,18 +422,18 @@ export default function MouseBulkRegisterPage() {
 
       {error && <p style={styles.errText}>{error}</p>}
       <div style={styles.actions}>
-        <span style={{ fontSize: '0.85rem', color: '#718096' }}>{rows.length}匹を登録します</span>
-        <button style={styles.cancelBtn} onClick={() => router.push('/mice')}>キャンセル</button>
+        <span style={{ fontSize: '0.85rem', color: '#718096' }}>{t('miceNew.willRegister', { n: rows.length })}</span>
+        <button style={styles.cancelBtn} onClick={() => router.push('/mice')}>{t('common.cancel')}</button>
         <button style={styles.submitBtn} onClick={handleSubmit} disabled={saving}>
-          {saving ? '登録中...' : `${rows.length}匹を一括登録`}
+          {saving ? t('miceNew.registering') : t('miceNew.bulkRegisterButton', { n: rows.length })}
         </button>
       </div>
 
       {/* Ear punch sequence editor */}
       <div style={styles.seqPanel}>
         <div style={styles.seqHeader}>
-          <span style={styles.sharedTitle}>耳パンチ自動入力の順番</span>
-          <span style={styles.toggleHint}>（編集可能・{rows.length}匹以上の場合は先頭から繰り返し）</span>
+          <span style={styles.sharedTitle}>{t('miceNew.earPunchSeqTitle')}</span>
+          <span style={styles.toggleHint}>{t('miceNew.earPunchSeqHint', { n: rows.length })}</span>
           <button
             style={styles.resetBtn}
             onClick={() => {
@@ -439,7 +441,7 @@ export default function MouseBulkRegisterPage() {
               if (autoFillMarking) applyMarkingAutoFill([...DEFAULT_EAR_PUNCH_SEQUENCE])
             }}
           >
-            リセット
+            {t('miceNew.reset')}
           </button>
         </div>
         <div style={styles.seqList}>

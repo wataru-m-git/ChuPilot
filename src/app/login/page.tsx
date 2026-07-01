@@ -3,8 +3,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
+import { useI18n } from '@/i18n/I18nProvider'
 
 export default function LoginPage() {
+  const { t } = useI18n()
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -17,7 +19,7 @@ export default function LoginPage() {
     setLoading(true)
     const result = await signIn('credentials', { email, password, redirect: false })
     if (result?.error) {
-      setError('メールアドレスまたはパスワードが正しくありません')
+      setError(t('login.invalidCredentials'))
     } else {
       router.push('/dashboard')
       router.refresh()
@@ -28,23 +30,23 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f7fafc' }}>
       <div style={{ background: '#fff', borderRadius: '10px', padding: '2rem', width: '100%', maxWidth: '400px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <h1 style={{ fontSize: '1.5rem', color: '#2d3748', marginBottom: '1.5rem', textAlign: 'center' }}>🐁 マウスコロニー管理</h1>
+        <h1 style={{ fontSize: '1.5rem', color: '#2d3748', marginBottom: '1.5rem', textAlign: 'center' }}>🐁 {t('login.appTitle')}</h1>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
-            <label style={labelStyle}>メールアドレス</label>
+            <label style={labelStyle}>{t('login.email')}</label>
             <input style={inputStyle} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
           </div>
           <div>
-            <label style={labelStyle}>パスワード</label>
+            <label style={labelStyle}>{t('login.password')}</label>
             <input style={inputStyle} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           {error && <p style={{ color: '#e53e3e', fontSize: '0.85rem' }}>{error}</p>}
           <button type="submit" disabled={loading} style={btnStyle}>
-            {loading ? 'ログイン中...' : 'ログイン'}
+            {loading ? t('login.loggingIn') : t('login.logIn')}
           </button>
         </form>
         <p style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.85rem', color: '#718096' }}>
-          アカウントがない場合は <Link href="/register" style={{ color: '#4299e1' }}>新規登録</Link>
+          {t('login.noAccount')} <Link href="/register" style={{ color: '#4299e1' }}>{t('login.signUp')}</Link>
         </p>
       </div>
     </div>

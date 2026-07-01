@@ -77,7 +77,7 @@ export interface DashboardSummary {
   by_strain: { strain: string; count: number }[];
 }
 
-/** 系統名を ';' で分割して遺伝子型名リストを返す */
+/** Splits the strain name by ';' and returns the list of genotype names */
 export function getGenotypeNamesFromStrain(strainName: string | null | undefined): string[] {
   if (!strainName) return [];
   return strainName.split(';').map((s) => s.trim()).filter(Boolean);

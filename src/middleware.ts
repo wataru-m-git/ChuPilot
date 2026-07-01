@@ -6,7 +6,7 @@ const PUBLIC_PATHS = ['/login', '/register']
 export default auth(function middleware(req) {
   const { pathname } = req.nextUrl
 
-  // Auth.js のハンドラルートは常に通過させる
+  // Always let Auth.js handler routes pass through
   if (pathname.startsWith('/api/auth')) {
     return NextResponse.next()
   }
@@ -14,14 +14,14 @@ export default auth(function middleware(req) {
   const isLoggedIn = !!req.auth
   const isPublic   = PUBLIC_PATHS.includes(pathname)
 
-  // 未認証かつ非公開ルート → /login へリダイレクト
+  // Not authenticated and not a public route → redirect to /login
   if (!isLoggedIn && !isPublic) {
     const url = req.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // 認証済みで /login or /register → /dashboard へリダイレクト
+  // Authenticated and on /login or /register → redirect to /dashboard
   if (isLoggedIn && isPublic) {
     const url = req.nextUrl.clone()
     url.pathname = '/dashboard'

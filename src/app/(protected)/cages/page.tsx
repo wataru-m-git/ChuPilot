@@ -17,6 +17,7 @@ import {
 } from '@/lib/db'
 import type { Cage, Mouse, Strain, Rack } from '@/types'
 import CageCard, { DraggableMouse } from '@/components/CageCard'
+import { useI18n } from '@/i18n/I18nProvider'
 
 interface EditingCage {
   id?: number
@@ -33,6 +34,7 @@ interface EditingCage {
 }
 
 export default function CagesPage() {
+  const { t } = useI18n()
   const [cages, setCages] = useState<Cage[]>([])
   const [racks, setRacks] = useState<Rack[]>([])
   const [uncagedMice, setUncagedMice] = useState<Mouse[]>([])
@@ -116,7 +118,7 @@ export default function CagesPage() {
         fetchCages()
       } catch (e) {
         console.error(e)
-        setError((e as Error).message || 'ケージの移動に失敗しました')
+        setError((e as Error).message || t('cages.errorMoveCage'))
         fetchCages()
       }
       return
@@ -244,7 +246,7 @@ export default function CagesPage() {
 
   const handleDeleteCage = async () => {
     if (!editingCage?.id) return
-    if (!confirm(`ケージ「${editingCage.cage_id}」を削除しますか？`)) return
+    if (!confirm(t('cages.confirmDeleteCage', { id: editingCage.cage_id }))) return
     setSaving(true)
     setError('')
     try {
@@ -252,7 +254,7 @@ export default function CagesPage() {
       setShowModal(false)
       fetchCages()
     } catch (e: unknown) {
-      setError((e as Error).message || '削除に失敗しました')
+      setError((e as Error).message || t('cages.errorDelete'))
     } finally { setSaving(false) }
   }
 
@@ -295,7 +297,7 @@ export default function CagesPage() {
       setSelectedCageForMating(null)
       fetchCages()
     } catch (e: unknown) {
-      setError((e as Error).message || '保存に失敗しました')
+      setError((e as Error).message || t('cages.errorSave'))
     } finally { setSaving(false) }
   }
 
@@ -311,7 +313,7 @@ export default function CagesPage() {
       const updatedCage = (await getCages()).find((c) => c.id === selectedCageForMating.id)
       if (updatedCage) setSelectedCageForMating(updatedCage)
     } catch (e: unknown) {
-      setError((e as Error).message || '保存に失敗しました')
+      setError((e as Error).message || t('cages.errorSave'))
     } finally { setSaving(false) }
   }
 
@@ -327,7 +329,7 @@ export default function CagesPage() {
       setNewRackSlots(6)
       fetchRacks()
     } catch (e) {
-      setError((e as Error).message || '棚の作成に失敗しました')
+      setError((e as Error).message || t('cages.errorCreateRack'))
     } finally {
       setSaving(false)
     }
@@ -350,13 +352,13 @@ export default function CagesPage() {
       setEditingRack(null)
       fetchRacks()
     } catch (e) {
-      setError((e as Error).message || 'スロット数の変更に失敗しました')
+      setError((e as Error).message || t('cages.errorUpdateSlots'))
     } finally { setSaving(false) }
   }
 
   const handleDeleteRack = async () => {
     if (!editingRack) return
-    if (!confirm(`棚「${editingRack.name}」を削除しますか？`)) return
+    if (!confirm(t('cages.confirmDeleteRack', { name: editingRack.name }))) return
     setSaving(true)
     setError('')
     try {
@@ -365,7 +367,7 @@ export default function CagesPage() {
       setEditingRack(null)
       fetchRacks()
     } catch (e) {
-      setError((e as Error).message || '削除に失敗しました')
+      setError((e as Error).message || t('cages.errorDelete'))
     } finally { setSaving(false) }
   }
 
@@ -384,13 +386,13 @@ export default function CagesPage() {
   // Legacy racks (cages without rack_id, grouped by rack_position)
   const legacyRackGroups = cages.reduce<Record<string, Cage[]>>((acc, cage) => {
     if (cage.rack_id) return acc
-    const rackName = cage.rack_position || '未配置'
+    const rackName = cage.rack_position || t('cages.unplaced')
     if (!acc[rackName]) acc[rackName] = []
     acc[rackName].push(cage)
     return acc
   }, {})
 
-  if (loading) return <div style={{ padding: '2rem' }}>読み込み中...</div>
+  if (loading) return <div style={{ padding: '2rem' }}>{t('common.loading')}</div>
 
   return (
     <div style={styles.container}>
@@ -412,11 +414,11 @@ export default function CagesPage() {
         }
       `}</style>
       <div style={styles.header}>
-        <h2 style={styles.title}>ケージビュー</h2>
+        <h2 style={styles.title}>{t('cages.title')}</h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="print-hide" style={styles.printBtn} onClick={() => window.print()}>PDF出力</button>
-          <button className="print-hide" style={styles.addRackBtn} onClick={() => { setNewRackName(''); setNewRackSlots(6); setShowRackModal(true) }}>+ 新規棚</button>
-          <button className="print-hide" style={styles.addBtn} onClick={() => openNewCage()}>+ 新規ケージ</button>
+          <button className="print-hide" style={styles.printBtn} onClick={() => window.print()}>{t('cages.exportPdf')}</button>
+          <button className="print-hide" style={styles.addRackBtn} onClick={() => { setNewRackName(''); setNewRackSlots(6); setShowRackModal(true) }}>{t('cages.addRack')}</button>
+          <button className="print-hide" style={styles.addBtn} onClick={() => openNewCage()}>{t('cages.addCage')}</button>
         </div>
       </div>
 
@@ -437,7 +439,7 @@ export default function CagesPage() {
         {/* Legacy racks (fallback for cages without rack_id) */}
         {Object.entries(legacyRackGroups).map(([rackName, rackCages]) => (
           <div key={`legacy-${rackName}`} style={styles.rackSection}>
-            <h3 style={styles.rackLabel}>棚: {rackName}</h3>
+            <h3 style={styles.rackLabel}>{t('cages.rackLabel', { name: rackName })}</h3>
             <RackDropZone rackName={rackName} isDraggingCage={isDraggingCage}>
               <div style={styles.cageGrid}>
                 {rackCages.map((cage) => (
@@ -450,7 +452,7 @@ export default function CagesPage() {
 
         {cages.length === 0 && uncagedMice.length === 0 && (
           <div style={styles.empty}>
-            <p>ケージがありません。「新規ケージ」ボタンで追加してください。</p>
+            <p>{t('cages.noCages')}</p>
           </div>
         )}
 
@@ -469,7 +471,7 @@ export default function CagesPage() {
             <div style={{ ...styles.dragOverlay, background: '#fefcbf', borderColor: '#d69e2e' }}>
               <strong>{activeCage.cage_id}</strong>
               <span style={{ marginLeft: '0.5rem', color: '#718096', fontSize: '0.78rem' }}>
-                {activeCage.mice.length}匹
+                {t('cages.miceCount', { n: activeCage.mice.length })}
               </span>
             </div>
           )}
@@ -481,7 +483,7 @@ export default function CagesPage() {
         <div style={styles.overlay}>
           <div style={styles.modal}>
             <h3 style={{ marginBottom: '1rem' }}>
-              {editingCage.id ? 'ケージ編集' : '新規ケージ作成'}
+              {editingCage.id ? t('cages.editCage') : t('cages.newCage')}
             </h3>
             <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -492,7 +494,7 @@ export default function CagesPage() {
                   checked={editingCage.type === 'normal'}
                   onChange={() => setEditingCage({ ...editingCage, type: 'normal' })}
                 />
-                <span>通常ケージ</span>
+                <span>{t('cages.normalCage')}</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <input
@@ -502,31 +504,31 @@ export default function CagesPage() {
                   checked={editingCage.type === 'mating'}
                   onChange={() => setEditingCage({ ...editingCage, type: 'mating' })}
                 />
-                <span>交配ケージ</span>
+                <span>{t('cages.matingCage')}</span>
               </label>
             </div>
             <div style={styles.formGrid}>
               <div style={styles.formField}>
-                <label style={styles.formLabel}>ケージID {editingCage.id ? '（変更不可）' : '*'}</label>
+                <label style={styles.formLabel}>{t('cages.cageId')} {editingCage.id ? t('cages.notEditable') : '*'}</label>
                 <input
                   style={{ ...styles.formInput, ...(editingCage.id ? { background: '#f7fafc', color: '#718096' } : {}) }}
                   value={editingCage.cage_id}
                   readOnly={!!editingCage.id}
                   onChange={(e) => !editingCage.id && setEditingCage({ ...editingCage, cage_id: e.target.value })}
-                  placeholder="棚名を入力すると自動設定"
+                  placeholder={t('cages.cageIdPlaceholder')}
                 />
               </div>
               {editingCage.type === 'normal' && (
                 <div style={styles.formField}>
-                  <label style={styles.formLabel}>系統名</label>
+                  <label style={styles.formLabel}>{t('cages.strainName')}</label>
                   <select style={styles.formInput} value={editingCage.strain}
                     onChange={(e) => setEditingCage({ ...editingCage, strain: e.target.value })}>
-                    <option value="">選択してください</option>
+                    <option value="">{t('cages.selectOption')}</option>
                     {strains.map((s) => (
                       <option key={s.id} value={s.name}>{s.name}</option>
                     ))}
                     {editingCage.strain && !strains.find((s) => s.name === editingCage.strain) && (
-                      <option value={editingCage.strain}>{editingCage.strain}（未登録）</option>
+                      <option value={editingCage.strain}>{t('cages.strainUnregistered', { name: editingCage.strain })}</option>
                     )}
                   </select>
                 </div>
@@ -534,20 +536,20 @@ export default function CagesPage() {
               {editingCage.type === 'mating' && (
                 <>
                   <div style={styles.formField}>
-                    <label style={styles.formLabel}>系統1（母方）</label>
+                    <label style={styles.formLabel}>{t('cages.strain1')}</label>
                     <select style={styles.formInput} value={editingCage.strain1_id ?? ''}
                       onChange={(e) => setEditingCage({ ...editingCage, strain1_id: e.target.value ? Number(e.target.value) : null })}>
-                      <option value="">選択してください</option>
+                      <option value="">{t('cages.selectOption')}</option>
                       {strains.map((s) => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
                   </div>
                   <div style={styles.formField}>
-                    <label style={styles.formLabel}>系統2（父方）</label>
+                    <label style={styles.formLabel}>{t('cages.strain2')}</label>
                     <select style={styles.formInput} value={editingCage.strain2_id ?? ''}
                       onChange={(e) => setEditingCage({ ...editingCage, strain2_id: e.target.value ? Number(e.target.value) : null })}>
-                      <option value="">選択してください</option>
+                      <option value="">{t('cages.selectOption')}</option>
                       {strains.map((s) => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
@@ -556,26 +558,26 @@ export default function CagesPage() {
                 </>
               )}
               <div style={styles.formField}>
-                <label style={styles.formLabel}>棚位置</label>
+                <label style={styles.formLabel}>{t('cages.rackPosition')}</label>
                 <input style={styles.formInput} value={editingCage.rack_position}
                   onChange={(e) => handleRackPositionChange(e.target.value)}
-                  placeholder="例: 9-2-A" />
+                  placeholder={t('cages.rackPositionPlaceholder')} />
               </div>
               <div style={styles.formField}>
-                <label style={styles.formLabel}>収容可能数</label>
+                <label style={styles.formLabel}>{t('cages.capacity')}</label>
                 <input type="number" style={styles.formInput} value={editingCage.capacity}
                   onChange={(e) => setEditingCage({ ...editingCage, capacity: Number(e.target.value) })}
                   min={1} max={20} />
               </div>
               <div style={{ ...styles.formField, gridColumn: '1 / -1' }}>
-                <label style={styles.formLabel}>メモ</label>
+                <label style={styles.formLabel}>{t('cages.notes')}</label>
                 <input style={styles.formInput} value={editingCage.notes}
                   onChange={(e) => setEditingCage({ ...editingCage, notes: e.target.value })} />
               </div>
             </div>
             {editingCage.type === 'mating' && editingCage.id && selectedCageForMating?.matingRecord && (
               <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
-                <h4 style={{ marginBottom: '1rem', color: '#2d3748' }}>交配記録</h4>
+                <h4 style={{ marginBottom: '1rem', color: '#2d3748' }}>{t('cages.matingRecord')}</h4>
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                   <button
                     style={{
@@ -589,7 +591,7 @@ export default function CagesPage() {
                     }}
                     onClick={() => setMatingTab('mating_date')}
                   >
-                    交配日
+                    {t('cages.matingDate')}
                   </button>
                   <button
                     style={{
@@ -603,7 +605,7 @@ export default function CagesPage() {
                     }}
                     onClick={() => setMatingTab('birth_date')}
                   >
-                    出産日
+                    {t('cages.birthDate')}
                   </button>
                   <button
                     style={{
@@ -617,13 +619,13 @@ export default function CagesPage() {
                     }}
                     onClick={() => setMatingTab('wean_date')}
                   >
-                    離乳日
+                    {t('cages.weanDate')}
                   </button>
                 </div>
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '0 4px 4px 4px', padding: '1rem' }}>
                   {matingTab === 'mating_date' && (
                     <div style={styles.formField}>
-                      <label style={styles.formLabel}>交配日</label>
+                      <label style={styles.formLabel}>{t('cages.matingDate')}</label>
                       <input
                         type="date"
                         style={styles.formInput}
@@ -634,7 +636,7 @@ export default function CagesPage() {
                   )}
                   {matingTab === 'birth_date' && (
                     <div style={styles.formField}>
-                      <label style={styles.formLabel}>出産日</label>
+                      <label style={styles.formLabel}>{t('cages.birthDate')}</label>
                       <input
                         type="date"
                         style={styles.formInput}
@@ -645,7 +647,7 @@ export default function CagesPage() {
                   )}
                   {matingTab === 'wean_date' && (
                     <div style={styles.formField}>
-                      <label style={styles.formLabel}>離乳日</label>
+                      <label style={styles.formLabel}>{t('cages.weanDate')}</label>
                       <input
                         type="date"
                         style={styles.formInput}
@@ -660,11 +662,11 @@ export default function CagesPage() {
             {error && <p style={{ color: '#e53e3e', fontSize: '0.85rem' }}>{error}</p>}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
               {editingCage.id && (
-                <button style={styles.deleteBtn} onClick={handleDeleteCage} disabled={saving}>削除</button>
+                <button style={styles.deleteBtn} onClick={handleDeleteCage} disabled={saving}>{t('common.delete')}</button>
               )}
-              <button style={styles.cancelBtn} onClick={() => setShowModal(false)}>キャンセル</button>
+              <button style={styles.cancelBtn} onClick={() => setShowModal(false)}>{t('common.cancel')}</button>
               <button style={styles.saveBtn} onClick={handleSaveCage} disabled={saving}>
-                {saving ? '保存中...' : '保存'}
+                {saving ? t('cages.saving') : t('common.save')}
               </button>
             </div>
           </div>
@@ -675,20 +677,20 @@ export default function CagesPage() {
       {showRackModal && (
         <div style={styles.overlay}>
           <div style={{ ...styles.modal, maxWidth: '360px' }}>
-            <h3 style={{ marginBottom: '1rem' }}>新規棚を追加</h3>
+            <h3 style={{ marginBottom: '1rem' }}>{t('cages.addRackTitle')}</h3>
             <div style={styles.formField}>
-              <label style={styles.formLabel}>棚名 *</label>
+              <label style={styles.formLabel}>{t('cages.rackName')}</label>
               <input
                 style={styles.formInput}
                 value={newRackName}
                 onChange={(e) => setNewRackName(e.target.value)}
-                placeholder="例: R3-1"
+                placeholder={t('cages.rackNamePlaceholder')}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleCreateRack() }}
                 autoFocus
               />
             </div>
             <div style={styles.formField}>
-              <label style={styles.formLabel}>スロット数 (1-26)</label>
+              <label style={styles.formLabel}>{t('cages.slotCount')}</label>
               <input
                 type="number"
                 style={styles.formInput}
@@ -698,13 +700,13 @@ export default function CagesPage() {
                 max={26}
               />
               <p style={{ fontSize: '0.75rem', color: '#718096', marginTop: '0.25rem' }}>
-                A〜{String.fromCharCode(64 + newRackSlots)} のスロットが作成されます
+                {t('cages.slotRangeHint', { letter: String.fromCharCode(64 + newRackSlots) })}
               </p>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button style={styles.cancelBtn} onClick={() => setShowRackModal(false)}>キャンセル</button>
+              <button style={styles.cancelBtn} onClick={() => setShowRackModal(false)}>{t('common.cancel')}</button>
               <button style={styles.saveBtn} onClick={handleCreateRack} disabled={!newRackName.trim() || saving}>
-                {saving ? '作成中...' : '作成'}
+                {saving ? t('cages.creating') : t('common.create')}
               </button>
             </div>
           </div>
@@ -715,9 +717,9 @@ export default function CagesPage() {
       {showEditRackModal && editingRack && (
         <div style={styles.overlay}>
           <div style={{ ...styles.modal, maxWidth: '360px' }}>
-            <h3 style={{ marginBottom: '1rem' }}>棚を編集: {editingRack.name}</h3>
+            <h3 style={{ marginBottom: '1rem' }}>{t('cages.editRackTitle', { name: editingRack.name })}</h3>
             <div style={styles.formField}>
-              <label style={styles.formLabel}>スロット数 (1-26)</label>
+              <label style={styles.formLabel}>{t('cages.slotCount')}</label>
               <input
                 type="number"
                 style={styles.formInput}
@@ -728,15 +730,15 @@ export default function CagesPage() {
                 autoFocus
               />
               <p style={{ fontSize: '0.75rem', color: '#718096', marginTop: '0.25rem' }}>
-                A〜{String.fromCharCode(64 + editRackSlots)} のスロットが作成されます
+                {t('cages.slotRangeHint', { letter: String.fromCharCode(64 + editRackSlots) })}
               </p>
             </div>
             {error && <p style={{ color: '#e53e3e', fontSize: '0.85rem' }}>{error}</p>}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button style={styles.deleteBtn} onClick={handleDeleteRack} disabled={saving}>削除</button>
-              <button style={styles.cancelBtn} onClick={() => { setShowEditRackModal(false); setError('') }}>キャンセル</button>
+              <button style={styles.deleteBtn} onClick={handleDeleteRack} disabled={saving}>{t('common.delete')}</button>
+              <button style={styles.cancelBtn} onClick={() => { setShowEditRackModal(false); setError('') }}>{t('common.cancel')}</button>
               <button style={styles.saveBtn} onClick={handleUpdateRack} disabled={saving}>
-                {saving ? '保存中...' : '保存'}
+                {saving ? t('cages.saving') : t('common.save')}
               </button>
             </div>
           </div>
@@ -754,15 +756,16 @@ function SlotGrid({ rack, slots, isDraggingCage, onAddCage, onEditCage, onEditRa
   onEditCage: (cage: Cage) => void
   onEditRack: (rack: Rack) => void
 }) {
+  const { t } = useI18n()
   const maxColumns = Math.min(rack.slots, 6)
   return (
     <div style={styles.rackSection}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-        <h3 style={{ ...styles.rackLabel, marginBottom: 0, flex: 1 }}>棚: {rack.name} ({slots.filter(Boolean).length}/{rack.slots})</h3>
+        <h3 style={{ ...styles.rackLabel, marginBottom: 0, flex: 1 }}>{t('cages.rackLabelCount', { name: rack.name, filled: slots.filter(Boolean).length, total: rack.slots })}</h3>
         <button
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#718096', padding: '0 4px' }}
           onClick={() => onEditRack(rack)}
-          title="棚を編集"
+          title={t('cages.editRack')}
         >
           ✏️
         </button>
@@ -803,6 +806,7 @@ function EmptySlot({ rackId, slot, slotLetter, isDraggingCage, onClick }: {
   isDraggingCage: boolean
   onClick: () => void
 }) {
+  const { t } = useI18n()
   const { setNodeRef, isOver } = useDroppable({
     id: `slot-${rackId}-${slot}`,
     data: { type: 'slot', rackId, slot },
@@ -830,7 +834,7 @@ function EmptySlot({ rackId, slot, slotLetter, isDraggingCage, onClick }: {
       }}
     >
       <div style={{ fontSize: '1.2rem', marginBottom: '0.25rem' }}>{slotLetter}</div>
-      <div style={{ fontSize: '0.75rem', color: '#a0aec0' }}>（クリックで追加）</div>
+      <div style={{ fontSize: '0.75rem', color: '#a0aec0' }}>{t('cages.clickToAdd')}</div>
     </div>
   )
 }
@@ -861,13 +865,14 @@ function RackDropZone({ rackName, children, isDraggingCage }: {
 }
 
 function NonCageSection({ mice }: { mice: Mouse[] }) {
+  const { t } = useI18n()
   const { setNodeRef, isOver } = useDroppable({
     id: 'nocage-zone',
     data: { type: 'nocage' },
   })
   return (
     <div style={ncStyles.section}>
-      <h3 style={ncStyles.label}>ケージなし（{mice.length}匹）</h3>
+      <h3 style={ncStyles.label}>{t('cages.noCageSection', { n: mice.length })}</h3>
       <div
         ref={setNodeRef}
         style={{
@@ -881,7 +886,7 @@ function NonCageSection({ mice }: { mice: Mouse[] }) {
             {mice.map((m) => <DraggableMouse key={m.id} mouse={m} sourceCageId={null} />)}
           </div>
         ) : (
-          <div style={ncStyles.empty}>ケージが登録されていないマウスはここに表示されます</div>
+          <div style={ncStyles.empty}>{t('cages.noCageEmpty')}</div>
         )}
       </div>
     </div>
