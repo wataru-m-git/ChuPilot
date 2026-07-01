@@ -94,13 +94,6 @@ model Mouse {
   color                  String?
   marking                String?
   cage_id                Int?
-  genotype_Ehf_cKO       String?
-  genotype_CMV_Ehf_flox  String?
-  genotype_CMV_Elf3_flox String?
-  genotype_Ascl1CreERT2  String?
-  genotype_Foxn1Cre      String?
-  genotype_Fabp4Cre_RFP  String?
-  genotype_Elf3Flox      String?
   genotypes              String?   // JSON: {"EhfcKO":"hetero","Foxn1Cre":null}
   typing_date            DateTime?
   status                 String    @default("active")

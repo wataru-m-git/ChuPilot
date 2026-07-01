@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { getMice } from '@/lib/db'
 import type { Mouse } from '@/types'
 import { GenotypeBadgeList } from '@/components/GenotypeBadge'
-import { GENOTYPE_FIELDS } from '@/types'
 
 export default function DisposedMicePage() {
   const router = useRouter()
@@ -82,15 +81,7 @@ export default function DisposedMicePage() {
                 const { date: disposeDate, reason: disposeReason } = parseDisposeNote(m.notes)
                 const genotypeEntries = m.genotypes && Object.keys(m.genotypes).length > 0
                   ? Object.entries(m.genotypes).map(([k, v]) => ({ key: k, value: v }))
-                  : (() => {
-                      const fields = [
-                        { key: 'genotype_Ehf_cKO', label: 'Ehf_cKO' }, { key: 'genotype_CMV_Ehf_flox', label: 'CMV_Ehf_flox' },
-                        { key: 'genotype_CMV_Elf3_flox', label: 'CMV_Elf3#8_flox' }, { key: 'genotype_Ascl1CreERT2', label: 'Ascl1CreERT2' },
-                        { key: 'genotype_Foxn1Cre', label: 'Foxn1Cre' }, { key: 'genotype_Fabp4Cre_RFP', label: 'Fabp4Cre<RFP>' },
-                        { key: 'genotype_Elf3Flox', label: 'Elf3Flox' },
-                      ] as const
-                      return fields.filter((f) => m[f.key as keyof Mouse]).map((f) => ({ key: f.label, value: m[f.key as keyof Mouse] as string }))
-                    })()
+                  : []
                 return (
                   <tr key={m.id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/mice/${m.id}`)}>
                     <td style={tdStyle}><strong>{m.name}</strong></td>

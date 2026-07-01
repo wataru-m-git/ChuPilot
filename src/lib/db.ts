@@ -80,13 +80,6 @@ function toMouse(m: PrismaMouseWithCage): Mouse {
     color:                  m.color,
     marking:                m.marking,
     cage_id:                m.cage_id,
-    genotype_Ehf_cKO:       m.genotype_Ehf_cKO,
-    genotype_CMV_Ehf_flox:  m.genotype_CMV_Ehf_flox,
-    genotype_CMV_Elf3_flox: m.genotype_CMV_Elf3_flox,
-    genotype_Ascl1CreERT2:  m.genotype_Ascl1CreERT2,
-    genotype_Foxn1Cre:      m.genotype_Foxn1Cre,
-    genotype_Fabp4Cre_RFP:  m.genotype_Fabp4Cre_RFP,
-    genotype_Elf3Flox:      m.genotype_Elf3Flox,
     genotypes,
     typing_date:            m.typing_date ? m.typing_date.toISOString().split('T')[0] : null,
     status:                 m.status,
@@ -134,13 +127,6 @@ function prepareMouseCreate(
     color:                  data.color            ?? null,
     marking:                data.marking          ?? null,
     cage_id:                data.cage_id          ?? null,
-    genotype_Ehf_cKO:       data.genotype_Ehf_cKO       ?? null,
-    genotype_CMV_Ehf_flox:  data.genotype_CMV_Ehf_flox  ?? null,
-    genotype_CMV_Elf3_flox: data.genotype_CMV_Elf3_flox ?? null,
-    genotype_Ascl1CreERT2:  data.genotype_Ascl1CreERT2  ?? null,
-    genotype_Foxn1Cre:      data.genotype_Foxn1Cre      ?? null,
-    genotype_Fabp4Cre_RFP:  data.genotype_Fabp4Cre_RFP  ?? null,
-    genotype_Elf3Flox:      data.genotype_Elf3Flox      ?? null,
     genotypes:              data.genotypes && Object.keys(data.genotypes).length > 0
                               ? JSON.stringify(data.genotypes) : null,
     typing_date:            data.typing_date ? new Date(data.typing_date) : null,
@@ -164,13 +150,6 @@ function prepareMouseUpdate(
   if (data.color               !== undefined) result.color               = data.color
   if (data.marking             !== undefined) result.marking             = data.marking
   if (data.cage_id             !== undefined) result.cage_id             = data.cage_id
-  if (data.genotype_Ehf_cKO    !== undefined) result.genotype_Ehf_cKO    = data.genotype_Ehf_cKO
-  if (data.genotype_CMV_Ehf_flox  !== undefined) result.genotype_CMV_Ehf_flox  = data.genotype_CMV_Ehf_flox
-  if (data.genotype_CMV_Elf3_flox !== undefined) result.genotype_CMV_Elf3_flox = data.genotype_CMV_Elf3_flox
-  if (data.genotype_Ascl1CreERT2  !== undefined) result.genotype_Ascl1CreERT2  = data.genotype_Ascl1CreERT2
-  if (data.genotype_Foxn1Cre      !== undefined) result.genotype_Foxn1Cre      = data.genotype_Foxn1Cre
-  if (data.genotype_Fabp4Cre_RFP  !== undefined) result.genotype_Fabp4Cre_RFP  = data.genotype_Fabp4Cre_RFP
-  if (data.genotype_Elf3Flox      !== undefined) result.genotype_Elf3Flox      = data.genotype_Elf3Flox
   if (data.genotypes !== undefined)
     result.genotypes = data.genotypes && Object.keys(data.genotypes).length > 0
       ? JSON.stringify(data.genotypes) : null

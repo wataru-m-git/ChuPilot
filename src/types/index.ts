@@ -31,15 +31,6 @@ export interface Mouse {
   cage_id: number | null;
   cage_label?: string | null;
   weeks?: number | null;
-  // Legacy fixed genotype columns (kept for backward compat display)
-  genotype_Ehf_cKO: string | null;
-  genotype_CMV_Ehf_flox: string | null;
-  genotype_CMV_Elf3_flox: string | null;
-  genotype_Ascl1CreERT2: string | null;
-  genotype_Foxn1Cre: string | null;
-  genotype_Fabp4Cre_RFP: string | null;
-  genotype_Elf3Flox: string | null;
-  // New dynamic genotype storage (JSON column)
   genotypes: Record<string, string | null>;
   typing_date: string | null;
   status: string;
@@ -94,40 +85,14 @@ export function getGenotypeNamesFromStrain(strainName: string | null | undefined
 
 export const GENOTYPE_OPTIONS = ['hetero', 'homo', 'null'] as const;
 
-// Legacy fields — still used when displaying older mice that have no genotypes JSON
-export const GENOTYPE_FIELDS: { key: keyof Mouse; label: string; displayLabel: string }[] = [
-  { key: 'genotype_Ehf_cKO', label: 'Ehf_cKO', displayLabel: 'Ehf_cKO' },
-  { key: 'genotype_CMV_Ehf_flox', label: 'CMV_Ehf_flox', displayLabel: 'CMV_Ehf_flox' },
-  { key: 'genotype_CMV_Elf3_flox', label: 'CMV_Elf3_flox', displayLabel: 'CMV_Elf3#8_flox' },
-  { key: 'genotype_Ascl1CreERT2', label: 'Ascl1CreERT2', displayLabel: 'Ascl1CreERT2' },
-  { key: 'genotype_Foxn1Cre', label: 'Foxn1Cre', displayLabel: 'Foxn1Cre' },
-  { key: 'genotype_Fabp4Cre_RFP', label: 'Fabp4Cre_RFP', displayLabel: 'Fabp4Cre<RFP>' },
-  { key: 'genotype_Elf3Flox', label: 'Elf3Flox', displayLabel: 'Elf3Flox' },
-];
-
-/** @deprecated Use getGenotypeNamesFromStrain instead */
-export function getGenotypeFieldsForStrain(strain: string | null | undefined) {
-  if (!strain) return GENOTYPE_FIELDS;
-  const parts = strain.split(':').map((p) => p.trim()).filter(Boolean);
-  const matched = parts
-    .map((part) => GENOTYPE_FIELDS.find((f) => f.label === part))
-    .filter((f): f is (typeof GENOTYPE_FIELDS)[0] => f !== undefined);
-  return matched.length > 0 ? matched : GENOTYPE_FIELDS;
-}
-
 export function buildGenotypeString(mouse: Mouse): string {
-  // Use new dynamic genotypes if available
   if (mouse.genotypes && Object.keys(mouse.genotypes).length > 0) {
     return Object.entries(mouse.genotypes)
       .filter(([, v]) => v != null)
       .map(([k, v]) => `${k}: ${v}`)
       .join(' / ');
   }
-  // Fall back to legacy fixed fields
-  return GENOTYPE_FIELDS
-    .filter((f) => mouse[f.key])
-    .map((f) => `${f.label}: ${mouse[f.key]}`)
-    .join(' / ');
+  return '-';
 }
 
 export function calcWeeks(birthDay: string | null): string {

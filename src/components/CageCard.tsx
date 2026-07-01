@@ -2,7 +2,6 @@
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import type { Cage, Mouse } from '@/types'
-import { GENOTYPE_FIELDS } from '@/types'
 import { GenotypeBadgeList } from '@/components/GenotypeBadge'
 
 interface CageCardProps {
@@ -96,9 +95,7 @@ export function DraggableMouse({ mouse, sourceCageId }: DraggableMouseProps) {
 
   const genotypeEntries = mouse.genotypes && Object.keys(mouse.genotypes).length > 0
     ? Object.entries(mouse.genotypes).map(([k, v]) => ({ key: k, value: v }))
-    : GENOTYPE_FIELDS
-        .filter((f) => (mouse as any)[f.key])
-        .map((f) => ({ key: f.label, value: (mouse as any)[f.key] }))
+    : []
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
