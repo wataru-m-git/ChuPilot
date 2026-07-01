@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { getMouse, deleteMouse, updateMouse } from '@/lib/db'
 import type { Mouse } from '@/types'
-import { GENOTYPE_FIELDS, getGenotypeNamesFromStrain } from '@/types'
+import { getGenotypeNamesFromStrain } from '@/types'
 import { GenotypeBadge } from '@/components/GenotypeBadge'
 
 export default function MouseDetailPage() {
@@ -93,19 +93,7 @@ export default function MouseDetailPage() {
               ))}
             </>
           ) : (
-            <>
-              {GENOTYPE_FIELDS.map(f => {
-                const value = mouse[f.key] as string | null
-                return (
-                  <div key={f.key}>
-                    <div style={{ fontSize: '0.75rem', color: '#718096', fontWeight: 600 }}>{f.displayLabel}</div>
-                    <div style={{ fontSize: '0.9rem', marginTop: '0.2rem' }}>
-                      {value ? <GenotypeBadge value={value} /> : <span style={{ color: '#a0aec0' }}>-</span>}
-                    </div>
-                  </div>
-                )
-              })}
-            </>
+            <span style={{ color: '#a0aec0' }}>-</span>
           )}
           <div>
             <div style={{ fontSize: '0.75rem', color: '#718096', fontWeight: 600 }}>判定日</div>
